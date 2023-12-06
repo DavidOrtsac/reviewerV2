@@ -167,6 +167,32 @@ body {
     padding: 0px;
     width: min-content;
 }
+.use-example-button {
+  background-color: #F9FAFB; /* Light gray that matches the form background */
+  color: #111827; /* Dark gray text for better contrast */
+  border: 1px solid #D1D5DB; /* Subtle border color */
+  padding: 0.5rem 1rem; /* Balanced padding */
+  font-family: 'Open Sans', sans-serif;
+  font-size: 1rem; /* Standard font size for buttons */
+  font-weight: 600; /* Slightly bold font weight for button text */
+  line-height: 1.5; /* Standard line height for buttons */
+  cursor: pointer; /* Cursor to indicate button functionality */
+  border-radius: 0.375rem; /* Rounded corners to match other inputs */
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Smooth transition for hover states */
+  display: inline-flex; /* Flexbox for centering content */
+  align-items: center; /* Vertically center content */
+  justify-content: center; /* Horizontally center content */
+  text-align: center; /* Ensure text is centered */
+  margin: 0; /* Reset margin */
+  width: auto; /* Auto width to fit content */
+  height: 2.5rem; /* Fixed height for consistency */
+}
+
+.use-example-button:hover {
+  background-color: #E5E7EB; /* Slightly darker background on hover for feedback */
+  color: #000000; /* Black text on hover for better readability */
+  border-color: #CBD5E1; /* Darker border on hover for emphasis */
+}
 
 .box { 
     border: 2px solid black; 
