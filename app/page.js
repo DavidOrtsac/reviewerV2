@@ -101,6 +101,11 @@ export default function Home() {
   return (
     <main className="bg-white min-h-screen p-4">
       <div className="w-full max-w-4xl mx-auto">
+        <div className="text-center mb-4">
+          <h1 className="text-5xl main-title">The Self-Quiz Engine</h1>
+          <p className="text-xl">by David Castro</p>
+        </div>
+  
         {/* Render the textarea and associated elements only if not generating and no streamedData */}
         {!isGenerating && !streamedData && (
           <div className="mt-8">
