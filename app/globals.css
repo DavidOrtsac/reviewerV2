@@ -386,15 +386,17 @@ textarea {
   position: relative; /* Needed for the overlay positioning */
 }
 
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(5px);
-  z-index: 10;
+.output-container {
+  position: relative;
+  overflow: auto; /* Allow scrolling within the container */
+  transition: filter 0.3s ease; /* Smooth transition for the filter effect */
+  /* Set a fixed height or max-height if necessary, e.g., max-height: 500px; */
+  /* Give the output container space below it */
+  margin-bottom: 50px;
+}
+
+.grayed-out {
+  filter: blur(4px) grayscale(1) opacity(0.5); /* Apply blur, grayscale, and reduce opacity */
 }
 
 @media (max-width: 809px) {

@@ -8,18 +8,22 @@ export default function Home() {
   const [firstOutputComplete, setFirstOutputComplete] = useState(false);
   const [userPrompt, setUserPrompt] = useState("");
   const abortController = useRef(null);
+  const [isBlurred, setIsBlurred] = useState(false);
 
-  const streamResponse = async (response, setResponseData, onComplete) => {
+  const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let data = '';
-
+  
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (onStreamStart && data === '') {
+          onStreamStart(); // Call this function when the stream starts
+        }
         const chunk = decoder.decode(value, { stream: true });
-        data += chunk.replace(/\n/g, '<pre>'); // Replace newlines with <br> for HTML display
+        data += chunk.replace(/\n/g, '<br>'); // Replace newlines with <br> for HTML display
         setResponseData(data);
       }
       if (onComplete) {
@@ -34,27 +38,27 @@ export default function Home() {
     e.preventDefault();
     setIsGenerating(true);
     setStreamedData("");
-    setFirstOutputComplete(false); // Reset when starting a new generation
+    setFirstOutputComplete(false);
+    setIsBlurred(true); // Enable blur when starting generation
     abortController.current = new AbortController();
 
     try {
       const generateQuizPrompt = `Convert the following passage into a quiz with 10 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
-
+ 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
         body: JSON.stringify({ prompt: generateQuizPrompt }),
         headers: { "Content-Type": "application/json" },
         signal: abortController.current.signal
       });
-
+  
       if (!quizResponse.ok) {
         throw new Error(`HTTP error! status: ${quizResponse.status}`);
       }
-
+  
       // Stream the first response and update streamedData state
-      await streamResponse(quizResponse, setStreamedData, async (quizText) => {
+      await streamResponse(quizResponse, setStreamedData, null, async (quizText) => {
         setFirstOutputComplete(true); // Indicate that the first output is complete
-
         // Prepare the second prompt using the quizText
   
         const applyHtmlPrompt = `You are a code writer tasked to generate an HTML worksheet with embedded CSS. Your sole purpose is to write clean, functional code without any comments, explanations, or unnecessary labels. You are not to engage in conversation or provide meta-comments.
@@ -89,7 +93,9 @@ export default function Home() {
 
       // Stream the second response and reset streamedData state before streaming
       setStreamedData(""); // Clear the existing data
-      await streamResponse(htmlResponse, setStreamedData);
+      await streamResponse(htmlResponse, setStreamedData, () => {
+        setIsBlurred(false); // Disable blur when the second output starts streaming
+      });
       setIsGenerating(false); // Set isGenerating to false after the second output is done
     });
   } catch (error) {
@@ -99,14 +105,15 @@ export default function Home() {
       console.error("Error during fetch:", error);
     }
     setIsGenerating(false); // Also set isGenerating to false in case of an error
+    setIsBlurred(false); // Also remove the blur effect in case of an error
   }
 };
-
 const handleCancel = () => {
   if (abortController.current) {
     abortController.current.abort();
     setIsGenerating(false);
-    setFirstOutputComplete(false); // Reset when cancelling
+    setFirstOutputComplete(false);
+    setIsBlurred(false); // Reset blur when cancelling
   }
 };
 
@@ -169,16 +176,13 @@ return (
           </form>
         </div>
       )}
+      
+      <div className={`output-container ${isBlurred ? 'grayed-out' : ''}`}>
+  {streamedData && (
+    <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>
+  )}
+</div>
 
-<div className="relative bg-white shadow-lg rounded-lg p-6 mb-6">
-          {streamedData && (
-            <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>
-          )}
-          {/* Conditionally render the overlay within the output container */}
-          {isGenerating && !firstOutputComplete && (
-            <div className="absolute top-0 left-0 right-0 bottom-0 bg-white bg-opacity-50 backdrop-blur-sm z-10"></div>
-          )}
-        </div>
 
       {(isGenerating || streamedData) && (
         <div className="fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center">
