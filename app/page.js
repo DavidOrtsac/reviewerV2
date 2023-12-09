@@ -9,6 +9,14 @@ export default function Home() {
   const [userPrompt, setUserPrompt] = useState("");
   const abortController = useRef(null);
   const [isBlurred, setIsBlurred] = useState(false);
+  const [isInputExpanded, setIsInputExpanded] = useState(true);  // New state for input area toggle
+  const [buttonText, setButtonText] = useState("Send");  // New state for button text
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);  // New state for button disabled state
+
+  const toggleInputArea = () => {
+    setIsInputExpanded(!isInputExpanded);
+  };
+
 
   const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
     const reader = response.body.getReader();
@@ -23,7 +31,7 @@ export default function Home() {
           onStreamStart(); // Call this function when the stream starts
         }
         const chunk = decoder.decode(value, { stream: true });
-        data += chunk.replace(/\n/g, '<br>'); // Replace newlines with <br> for HTML display
+        data += chunk.replace(/\n/g, ''); // Replace newlines with <br> for HTML display
         setResponseData(data);
       }
       if (onComplete) {
@@ -33,17 +41,18 @@ export default function Home() {
       console.error("Streaming error:", error);
     }
   };
-
   const handleChatSubmit = async (e) => {
     e.preventDefault();
     setIsGenerating(true);
     setStreamedData("");
     setFirstOutputComplete(false);
-    setIsBlurred(true); // Enable blur when starting generation
+    setIsBlurred(true);
+    setIsButtonDisabled(true); // Disable button when generation starts
+    setButtonText("Preparing Questions..."); // Update button text for first output
     abortController.current = new AbortController();
 
     try {
-      const generateQuizPrompt = `Convert the following passage into a quiz with 10 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
+      const generateQuizPrompt = `Convert the following passage into a quiz with 5 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
  
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -58,21 +67,20 @@ export default function Home() {
   
       // Stream the first response and update streamedData state
       await streamResponse(quizResponse, setStreamedData, null, async (quizText) => {
-        setFirstOutputComplete(true); // Indicate that the first output is complete
-        // Prepare the second prompt using the quizText
+        setFirstOutputComplete(true);
+        setButtonText("Generating Quiz..."); // Update button text for second output
   
         const applyHtmlPrompt = `You are a code writer tasked to generate an HTML worksheet with embedded CSS. Your sole purpose is to write clean, functional code without any comments, explanations, or unnecessary labels. You are not to engage in conversation or provide meta-comments.
 
-      2. The text must always be black. Do not change the font.
-      3. Do not style the body. Do not change any fonts.
-      4. Each question must be placed in a question box. Give it the .questionBox class. Do not style the questionBox class.
-      5. Each of the choices must be placed under their respective questions. Give the <p> tags the .choiceBox class. Do not style the choiceBox class.
-      6. The answer must be placed in a div box under their respective choices. Its class name is "answerBox". DO NOT STYLE THE ANSWERBOX.
-      7. Do not put shadows.
-      8. Complete any incomplete questions if they lack choices or answer.
-      9. EACH QUESTION MUST BE NUMBERED.
-      10. LIMIT THE QUESTIONS TO 10 ONLY.
-      11. EACH QUESTION MUST HAVE 4 CHOICES.
+      1. The text must always be black. Do not change the font.
+      2. Each QUESTION TEXT must be placed within the .questionBox class. Do not style the questionBox class. DO NOT FORGET TO ADD THE QUESTION.
+      3. Each of the CHOICES must be placed under their respective questions. Give the <p> tags the .choiceBox class. Do not style the choiceBox class.
+      4. The ANSWER must be placed in a div box under their respective choices. Its class name is "answerBox". DO NOT STYLE THE ANSWERBOX.
+      5. Do not put shadows.
+      6. Complete any incomplete questions if they lack choices or answer.
+      7. EACH QUESTION MUST BE NUMBERED.
+      8. LIMIT THE QUESTIONS TO 5 ONLY.
+      9. EACH QUESTION MUST HAVE 4 CHOICES.
       
       Apply HTML to this quiz: ${quizText}
       
@@ -96,7 +104,9 @@ export default function Home() {
       await streamResponse(htmlResponse, setStreamedData, () => {
         setIsBlurred(false); // Disable blur when the second output starts streaming
       });
-      setIsGenerating(false); // Set isGenerating to false after the second output is done
+      setIsGenerating(false);
+      setIsButtonDisabled(false); // Enable button after generation is done
+      setButtonText("Send"); // Reset button text
     });
   } catch (error) {
     if (error.name === 'AbortError') {
@@ -106,6 +116,8 @@ export default function Home() {
     }
     setIsGenerating(false); // Also set isGenerating to false in case of an error
     setIsBlurred(false); // Also remove the blur effect in case of an error
+    setIsButtonDisabled(false); // Enable button in case of an error
+    setButtonText("Send"); // Reset button tex
   }
 };
 const handleCancel = () => {
@@ -113,7 +125,9 @@ const handleCancel = () => {
     abortController.current.abort();
     setIsGenerating(false);
     setFirstOutputComplete(false);
-    setIsBlurred(false); // Reset blur when cancelling
+    setIsBlurred(false);
+    setIsButtonDisabled(false);  // Enable the button
+    setButtonText("Send");       // Reset the button text
   }
 };
 
@@ -182,38 +196,43 @@ return (
     <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>
   )}
 </div>
-
-
-      {(isGenerating || streamedData) && (
-        <div className="fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center">
-          <input
-            type="text"
-            className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg mr-4"
-            placeholder="Type your message..."
-            value={userPrompt}
-            onChange={handleInputChange}
-            disabled={isGenerating}
-          />
+{(isGenerating || streamedData) && (
+          <div className="fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center">
+            {isInputExpanded && (
+              <>
+                <input
+                  type="text"
+                  className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg mr-4"
+                  placeholder="Type your message..."
+                  value={userPrompt}
+                  onChange={handleInputChange}
+                  disabled={isGenerating}
+                />
           <button
             type="button"
             onClick={handleChatSubmit}
-            className="ml-4 px-6 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition duration-200"
-            disabled={isGenerating || userPrompt.trim() === ''}
+            className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${isButtonDisabled ? 'bg-gray-400' : 'bg-black text-white hover:bg-gray-700'}`}
+            disabled={isButtonDisabled || userPrompt.trim() === ''}
           >
-            {isGenerating ? "Sending..." : "Send"}
+            {buttonText}
           </button>
-          {isGenerating && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="ml-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  </main>
-);
+                {isGenerating && (
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="ml-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </>
+            )}
+            <div className="input-toggle-button" onClick={toggleInputArea}>
+              {isInputExpanded ? '▲' : '▼'}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }
