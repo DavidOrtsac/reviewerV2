@@ -159,6 +159,15 @@ body {
     color: black;
 }
 
+/* Add this to your CSS for the draggable element */
+.cursor-grab {
+  cursor: grab;
+}
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
+
 .prompt-container {
     place-content: flex-end center;
     align-items: center;
@@ -469,7 +478,7 @@ textarea {
   right: 1350px; /* Adjust as needed */
   bottom: 10px; /* Adjust as needed */
   background-color: #f0f0f0;
-  border-radius: 5px;
+  border-radius: 50px;
   padding: 5px;
   text-align: center;
   z-index: 20; /* Ensure it's above other elements */
@@ -498,4 +507,30 @@ textarea {
     100% {
         transform: rotate(360deg);
     }
+}
+
+@media screen and (max-width: 600px) {
+  .input-area, .input-field {
+    /* Ensure the input area has more space */
+    flex: 1 0 auto; /* Allows the input field to grow */
+    margin-right: 5px; /* Adjust margin for spacing */
+  }
+
+  .button, .input-toggle-button {
+    padding: 8px; /* Reduce padding for smaller screens */
+    font-size: 12px; /* Reduce font size for smaller buttons */
+    min-width: 50px; /* Set a minimum width for buttons */
+  }
+
+  .fixed-bottom-container {
+    flex-direction: column; /* Stack elements vertically */
+    align-items: stretch; /* Stretch children across the cross axis */
+  }
+
+  .fixed-bottom-container button {
+    margin-top: 5px; /* Add space between buttons when stacked */
+    width: 100%; /* Full width buttons in mobile view */
+  }
+
+  /* Adjust other elements as needed for mobile responsiveness */
 }
