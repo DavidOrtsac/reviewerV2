@@ -2,7 +2,32 @@
 
 import { useState, useRef, useEffect } from "react";
 
+function useScript(src) {
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [src]);
+
+  return null;
+}
+
 export default function Home() {
+  useScript('https://www.googletagmanager.com/gtag/js?id=G-M9HSPDRDPR');
+
+  useEffect(() => {
+    if (window.gtag) {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', 'G-M9HSPDRDPR');
+    }
+  }, []);
   const [streamedData, setStreamedData] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [firstOutputComplete, setFirstOutputComplete] = useState(false);
@@ -18,20 +43,6 @@ export default function Home() {
   };
 
 
-  useEffect(() => {
-    // Initialize Google Analytics
-    const scriptTag = document.createElement('script');
-    scriptTag.async = true;
-    scriptTag.src = 'https://www.googletagmanager.com/gtag/js?id=G-M9HSPDRDPR';
-    document.head.appendChild(scriptTag);
-
-    scriptTag.onload = () => {
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag('js', new Date());
-      gtag('config', 'G-M9HSPDRDPR');
-    }
-  }, []);
   const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -134,16 +145,16 @@ export default function Home() {
     setButtonText("Send"); // Reset button tex
   }
 };
-const handleCancel = () => {
-  if (abortController.current) {
-    abortController.current.abort();
-    setIsGenerating(false);
-    setFirstOutputComplete(false);
-    setIsBlurred(false);
-    setIsButtonDisabled(false);  // Enable the button
-    setButtonText("Send");       // Reset the button text
-  }
-};
+  const handleCancel = () => {
+    if (abortController.current) {
+      abortController.current.abort();
+      setIsGenerating(false);
+      setFirstOutputComplete(false);
+      setIsBlurred(false);
+      setIsButtonDisabled(false);  // Enable the button
+      setButtonText("Send");       // Reset the button text
+    }
+  };
 
 const handleInputChange = (e) => {
   setUserPrompt(e.target.value);
@@ -163,7 +174,6 @@ const handleExampleText = async (e) => {
     console.error("Error fetching example text:", error);
   }
 };
-
 
 return (
   <main className="bg-white min-h-screen p-4 flex justify-center items-center">
