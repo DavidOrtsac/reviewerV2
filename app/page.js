@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function Home() {
   const [streamedData, setStreamedData] = useState("");
@@ -18,6 +18,20 @@ export default function Home() {
   };
 
 
+  useEffect(() => {
+    // Initialize Google Analytics
+    const scriptTag = document.createElement('script');
+    scriptTag.async = true;
+    scriptTag.src = 'https://www.googletagmanager.com/gtag/js?id=G-M9HSPDRDPR';
+    document.head.appendChild(scriptTag);
+
+    scriptTag.onload = () => {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', 'G-M9HSPDRDPR');
+    }
+  }, []);
   const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
