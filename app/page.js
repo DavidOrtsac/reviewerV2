@@ -63,7 +63,7 @@ export default function Home() {
     abortController.current = new AbortController();
 
     try {
-      const generateQuizPrompt = `Convert the following passage into a quiz with 5 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
+      const generateQuizPrompt = `Convert the following passage into a quiz with 7 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -89,7 +89,7 @@ export default function Home() {
       5. Do not put shadows.
       6. Complete any incomplete questions if they lack choices or answer.
       7. EACH QUESTION MUST BE NUMBERED.
-      8. LIMIT THE QUESTIONS TO 5 ONLY.
+      8. LIMIT THE QUESTIONS TO 7 ONLY.
       9. EACH QUESTION MUST HAVE 4 CHOICES.
       
       Apply HTML to this quiz: ${quizText}
@@ -250,8 +250,8 @@ const handleExampleText = async (e) => {
 
 {secondOutputComplete && (
           <div className="text-center mt-8 mb-4">
-            <h2 className="text-2xl font-bold">Get notified of weekly app updates</h2>
-            <p className="text-md mt-1">You don’t want to miss the chance to get smarter.</p>
+            <h2 className="text-2xl font-bold">Got a minute? You don't want to miss the chance to get smarter!</h2>
+            <p className="text-md mt-1">Get notified of weekly Reviewer app updates</p>
           </div>
         )}
         {secondOutputComplete && (
