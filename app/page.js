@@ -13,7 +13,8 @@ export default function Home() {
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [buttonText, setButtonText] = useState("Send");
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-  const [questionCount, setQuestionCount] = useState(7); // New state for question count
+  const [MultipleChoiceQuestionCount, setMultipleChoiceQuestionCount] = useState(7);
+  const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3); // New state for True/False question count
   const [showOptions, setShowOptions] = useState(false); // State to toggle options visibility
 
   const toggleInputArea = () => {
@@ -70,7 +71,7 @@ export default function Home() {
     
 
     try {
-      const generateQuizPrompt = `Convert the following passage into a quiz with ${questionCount} questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
+      const generateQuizPrompt = `Convert the following passage into a quiz. It must include ${MultipleChoiceQuestionCount} multiple-choice questions (four choices each), ${TrueFalseQuestionCount} True/False questions with two choices, and the correct answer appended at the end of each respective question:\n\n${userPrompt}`;
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -96,8 +97,10 @@ export default function Home() {
       5. Do not put shadows.
       6. Complete any incomplete questions if they lack choices or answer.
       7. EACH QUESTION MUST BE NUMBERED.
-      8. LIMIT THE QUESTIONS TO ${questionCount} ONLY.
-      9. EACH QUESTION MUST HAVE 4 CHOICES.
+      8. LIMIT THE MULTIPLE-CHOICE QUESTIONS TO ${MultipleChoiceQuestionCount} ONLY.
+      9. LIMIT THE TRUE/FALSE QUESTIONS TO ${TrueFalseQuestionCount} ONLY.
+      10. EACH MULTIPLE-CHOICE QUESTION MUST HAVE 4 CHOICES.
+      11. EACH TRUE/FALSE QUESTION MUST HAVE 2 CHOICES.
       
       Apply HTML to this quiz: ${quizText}
       
@@ -217,20 +220,36 @@ const handleExampleText = async (e) => {
 </div>
 
 {showOptions && (
-  <div className="text-center mt-4">
-    <label htmlFor="question-slider" className="block text-sm font-medium text-gray-700">Number of Questions</label>
-    <input
-      id="question-slider"
-      type="range"
-      min="3"
-      max="12"
-      value={questionCount}
-      onChange={(e) => setQuestionCount(e.target.value)}
-      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-    />
-    <div className="text-sm text-gray-600 mt-2">{questionCount}</div>
-  </div>
-)}
+    <div className="mt-4">
+      <div className="text-center">
+        <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">Number of Multiple Choice Questions</label>
+        <input
+          id="multiple-choice-slider"
+          type="range"
+          min="3"
+          max="10"
+          value={MultipleChoiceQuestionCount}
+          onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+        />
+        <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
+      </div>
+
+      <div className="text-center mt-4">
+        <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">Number of True/False Questions</label>
+        <input
+          id="true-false-slider"
+          type="range"
+          min="1"
+          max="5"
+          value={TrueFalseQuestionCount}
+          onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+        />
+        <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
+      </div>
+    </div>
+  )}
             </form>
           </div>
         )}

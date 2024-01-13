@@ -7,14 +7,14 @@ export default async function handler(req, res) {
   // Initialize the model for GPT-4
   const gpt4Model = new ChatOpenAI({
     modelName: 'gpt-3.5-turbo-16k', // Assuming 'gpt-4' is the correct model name
-    maxTokens: 1700,
+    maxTokens: 2000,
     streaming: true, // Enable streaming for GPT-4 as well
   });
 
   // Initialize the model for GPT-3.5
   const gpt35Model = new ChatOpenAI({
     modelName: 'gpt-3.5-turbo-16k',
-    maxTokens: 1700,
+    maxTokens: 2000,
     streaming: true,
   });
 
