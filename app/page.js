@@ -13,9 +13,15 @@ export default function Home() {
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [buttonText, setButtonText] = useState("Send");
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const [questionCount, setQuestionCount] = useState(7); // New state for question count
+  const [showOptions, setShowOptions] = useState(false); // State to toggle options visibility
 
   const toggleInputArea = () => {
     setIsInputExpanded(!isInputExpanded);
+  };
+
+  const toggleOptionsVisibility = () => {
+    setShowOptions(!showOptions);
   };
 
   useEffect(() => {
@@ -61,9 +67,10 @@ export default function Home() {
     setIsButtonDisabled(true);
     setButtonText("Preparing Questions...");
     abortController.current = new AbortController();
+    
 
     try {
-      const generateQuizPrompt = `Convert the following passage into a quiz with 7 questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
+      const generateQuizPrompt = `Convert the following passage into a quiz with ${questionCount} questions, four choices each, and the answer appended at the end of each question:\n\n${userPrompt}`;
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -89,7 +96,7 @@ export default function Home() {
       5. Do not put shadows.
       6. Complete any incomplete questions if they lack choices or answer.
       7. EACH QUESTION MUST BE NUMBERED.
-      8. LIMIT THE QUESTIONS TO 7 ONLY.
+      8. LIMIT THE QUESTIONS TO ${questionCount} ONLY.
       9. EACH QUESTION MUST HAVE 4 CHOICES.
       
       Apply HTML to this quiz: ${quizText}
@@ -199,6 +206,31 @@ const handleExampleText = async (e) => {
                   Generate
                 </button>
               </div>
+              <div className="mt-4">
+  <button
+    type="button"
+    onClick={toggleOptionsVisibility}
+    className="w-full px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+  >
+    {showOptions ? 'Hide Options' : 'Show Options'}
+  </button>
+</div>
+
+{showOptions && (
+  <div className="text-center mt-4">
+    <label htmlFor="question-slider" className="block text-sm font-medium text-gray-700">Number of Questions</label>
+    <input
+      id="question-slider"
+      type="range"
+      min="3"
+      max="12"
+      value={questionCount}
+      onChange={(e) => setQuestionCount(e.target.value)}
+      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+    />
+    <div className="text-sm text-gray-600 mt-2">{questionCount}</div>
+  </div>
+)}
             </form>
           </div>
         )}
@@ -263,5 +295,7 @@ const handleExampleText = async (e) => {
 
       </div>
     </main>
+
+    
   );
 }
