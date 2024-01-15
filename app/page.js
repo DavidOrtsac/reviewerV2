@@ -174,10 +174,13 @@ const handleExampleText = async (e) => {
   };
 
   return (
-    <main className="bg-white min-h-screen p-4 flex justify-center items-center">
-      <div className="max-w-4xl w-full">
+    <main className="bg-white min-h-screen p-4 bg-background-image flex justify-center items-center relative overflow-hidden">
+    <div className="max-w-4xl w-full z-10 relative">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold main-title">The Self-Quiz Engine</h1>
+        <h1 className="text-5xl font-bold main-title">
+  The <span className="text-red-600">Self-Quiz</span> Engine
+</h1>
+
           <p className="text-xl mt-2">by David Castro</p>
         </div>
 
@@ -204,7 +207,7 @@ const handleExampleText = async (e) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition duration-200"
+                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
                   disabled={isGenerating || userPrompt.trim() === ''}
                 >
                   Generate
@@ -231,7 +234,7 @@ const handleExampleText = async (e) => {
           max="10"
           value={MultipleChoiceQuestionCount}
           onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
         />
         <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
       </div>
@@ -245,7 +248,7 @@ const handleExampleText = async (e) => {
           max="5"
           value={TrueFalseQuestionCount}
           onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
         />
         <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
       </div>
