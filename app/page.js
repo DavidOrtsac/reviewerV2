@@ -57,6 +57,7 @@ export default function Home() {
       console.error("Streaming error:", error);
     }
   };
+  
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
@@ -196,7 +197,7 @@ const handleExampleText = async (e) => {
                 <button
                   type="button"
                   onClick={handleExampleText}
-                  className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                  className="example-btn px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
                   disabled={isGenerating}
                 >
                   Use Example
