@@ -178,13 +178,14 @@ input[type="range"]::-webkit-slider-thumb {
     background-image: url('https://media.discordapp.net/attachments/989274745495240734/1196434011191517195/woah.png?ex=65b79d00&is=65a52800&hm=8edc54609c7f20088de1fff7d3faa91c9e15f6a6c75c64d90e1b9a1e35285484&=&format=webp&quality=lossless&width=1600&height=896');
     background-size: cover;
     background-attachment: fixed;
-    z-index: -1; /* Place behind other content */
-    opacity: 1; /* Adjust opacity of the background image */
-    position: absolute; /* Absolute position relative to the parent */
+    z-index: -1;
+    opacity: 1; /* If opacity has been adjusted in the image itself, keep it at 1 */
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    /* height: 100%; Remove this line */
+    min-height: 100vh; /* Ensure it covers at least the full viewport height */
   }
 
 
@@ -304,7 +305,6 @@ input[type="range"]::-webkit-slider-thumb {
     flex-flow: column nowrap;
     gap: 10px;
     height: 150px;
-    overflow: hidden;
     padding: 20px;
     position: relative;
     width: 610px;
@@ -327,7 +327,6 @@ textarea {
     border: 1px solid #ccc;
     outline: 1px solid #ccc;
     font-family: 'Varela Round', sans-serif;
-    overflow: hidden;
     transition: 1s;
 }
 
@@ -360,7 +359,6 @@ textarea {
     flex-flow: row nowrap;
     gap: 12px;
     height: min-content;
-    overflow: hidden;
     padding: 0px;
     position: relative;
     width: 100%;
@@ -523,7 +521,6 @@ textarea {
 
 .input-area {
   transition: max-height 0.5s ease-out, opacity 0.5s ease;
-  overflow: hidden;
   max-height: 500px; /* Adjust as needed */
 }
 
