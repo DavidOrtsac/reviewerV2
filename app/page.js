@@ -94,14 +94,14 @@ export default function Home() {
       1. The text must always be black. Do not change the font.
       2. Each QUESTION TEXT must be placed within the .questionBox class. Do not style the questionBox class. DO NOT FORGET TO ADD THE QUESTION.
       3. Each of the CHOICES must be placed under their respective questions. Give the <p> tags the .choiceBox class. Do not style the choiceBox class.
-      4. The ANSWER must be placed in a div box under their respective choices. Its class name is "answerBox". DO NOT STYLE THE ANSWERBOX.
+      4. The ANSWER must be placed in a div box under their respective choices. Its class name is "hiddenAnswerBox". DO NOT STYLE THE HIDDENANSWERBOX.
       5. Do not put shadows.
       6. Complete any incomplete questions if they lack choices or answer.
       7. EACH QUESTION MUST BE NUMBERED.
       8. LIMIT THE MULTIPLE-CHOICE QUESTIONS TO ${MultipleChoiceQuestionCount} ONLY.
       9. LIMIT THE TRUE/FALSE QUESTIONS TO ${TrueFalseQuestionCount} ONLY.
       10. EACH MULTIPLE-CHOICE QUESTION MUST HAVE 4 CHOICES.
-      11. EACH TRUE/FALSE QUESTION MUST HAVE 2 CHOICES.
+      11. EACH TRUE/FALSE QUESTION MUST HAVE 2 CHOICES. Their answers must also have the "hiddenAnswerBox" class.
       
       Apply HTML to this quiz: ${quizText}
       
@@ -193,10 +193,10 @@ const handleExampleText = async (e) => {
                 value={userPrompt}
                 onChange={handleInputChange}
                 rows="6"
-                maxLength="14000"
+                maxLength="20000"
               />
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{userPrompt.length}/14000</span>
+                <span className="text-sm text-gray-600">{userPrompt.length}/20000</span>
                 <button
                   type="button"
                   onClick={handleExampleText}

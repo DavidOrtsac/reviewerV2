@@ -95,7 +95,7 @@ body {
     background: #ffffff;
 }
 
-.header-title h1, .header-subtitle h2, .prompt-box, .choiceBox, .questionBox, .answerBox, .output-header h3, .output-content p {
+.header-title h1, .header-subtitle h2, .prompt-box, .choiceBox, .questionBox, .hiddenAnswerBox, .output-header h3, .output-content p {
     font-family: 'Open Sans', sans-serif;
 }
 
@@ -271,7 +271,7 @@ input[type="range"]::-webkit-slider-thumb {
     text-align: center;
 }
 
-.answerBox {
+.hiddenAnswerBox {
     top: 50%;
     left: 50%;
     font-size: 20px;
@@ -285,7 +285,7 @@ input[type="range"]::-webkit-slider-thumb {
     transition: 1s;
 }
 
-.answerBox:hover {
+.hiddenAnswerBox:hover {
     color: black;
 }
 
