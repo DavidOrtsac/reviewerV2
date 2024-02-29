@@ -71,8 +71,17 @@ export default function Home() {
     abortController.current = new AbortController();
     
 
-    try {
-      const generateQuizPrompt = `Convert the following passage into a quiz. It must include ${MultipleChoiceQuestionCount} multiple-choice questions (four choices each), ${TrueFalseQuestionCount} True/False questions with two choices, and the correct answer appended at the end of each respective question:\n\n${userPrompt}`;
+   
+  try {
+    // Load the GenerateQuizPrompt template
+    const promptResponse = await fetch('/prompts/GenerateQuizPrompt.txt');
+    let generateQuizPromptTemplate = await promptResponse.text();
+
+    // Replace placeholders with actual values
+    const generateQuizPrompt = generateQuizPromptTemplate
+      .replace('{MultipleChoiceQuestionCount}', MultipleChoiceQuestionCount)
+      .replace('{TrueFalseQuestionCount}', TrueFalseQuestionCount)
+      .replace('{userPrompt}', userPrompt);
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -89,25 +98,15 @@ export default function Home() {
         setFirstOutputComplete(true);
         setButtonText("Generating Quiz...");
   
-        const applyHtmlPrompt = `You are a code writer tasked to generate an HTML worksheet with embedded CSS. Your sole purpose is to write clean, functional code without any comments, explanations, or unnecessary labels. You are not to engage in conversation or provide meta-comments.
-
-      1. The text must always be black. Do not change the font.
-      2. Each QUESTION TEXT must be placed within the .questionBox class. Do not style the questionBox class. DO NOT FORGET TO ADD THE QUESTION.
-      3. Each of the CHOICES must be placed under their respective questions. Give the <p> tags the .choiceBox class. Do not style the choiceBox class.
-      4. The ANSWER must be placed in a div box under their respective choices. Its class name is "hiddenAnswerBox". DO NOT STYLE THE HIDDENANSWERBOX.
-      5. Do not put shadows.
-      6. Complete any incomplete questions if they lack choices or answer.
-      7. EACH QUESTION MUST BE NUMBERED.
-      8. LIMIT THE MULTIPLE-CHOICE QUESTIONS TO ${MultipleChoiceQuestionCount} ONLY.
-      9. LIMIT THE TRUE/FALSE QUESTIONS TO ${TrueFalseQuestionCount} ONLY.
-      10. EACH MULTIPLE-CHOICE QUESTION MUST HAVE 4 CHOICES.
-      11. EACH TRUE/FALSE QUESTION MUST HAVE 2 CHOICES. Their answers must also have the "hiddenAnswerBox" class.
-      
-      Apply HTML to this quiz: ${quizText}
-      
-      Generate the worksheet code immediately below this line. Do not include any other information, and do not speak. DO NOT ENCLOSE THE CODE WITHIN ANYTHING, INCLUDING BACKTICKS OR QUOTATIONS:`;
-
- 
+        const applyHtmlPromptResponse = await fetch('/prompts/ApplyHtmlPrompt.txt');
+        let applyHtmlPromptTemplate = await applyHtmlPromptResponse.text();
+        
+        // Replace placeholders with actual values
+        const applyHtmlPrompt = applyHtmlPromptTemplate
+          .replace('{MultipleChoiceQuestionCount}', MultipleChoiceQuestionCount)
+          .replace('{TrueFalseQuestionCount}', TrueFalseQuestionCount)
+          .replace('{quizText}', quizText); // Assuming `quizText` is the variable holding the quiz content to apply HTML to
+        
  
       const htmlResponse = await fetch("/api/chat", {
         method: "POST",
