@@ -14,8 +14,8 @@ export default function Home() {
   const [buttonText, setButtonText] = useState("Send");
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [MultipleChoiceQuestionCount, setMultipleChoiceQuestionCount] = useState(7);
-  const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3); // New state for True/False question count
-  const [showOptions, setShowOptions] = useState(false); // State to toggle options visibility
+  const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3);
+  const [showOptions, setShowOptions] = useState(false);
 
   const toggleInputArea = () => {
     setIsInputExpanded(!isInputExpanded);
@@ -26,13 +26,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (secondOutputComplete) { // Changed from firstOutputComplete to secondOutputComplete
+    if (secondOutputComplete) {
       const script = document.createElement("script");
       script.src = "//embed.typeform.com/next/embed.js";
       script.async = true;
       document.body.appendChild(script);
     }
-  }, [secondOutputComplete]); // Changed from firstOutputComplete to secondOutputComplete
+  }, [secondOutputComplete]);
 
   const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
     const reader = response.body.getReader();
@@ -69,8 +69,6 @@ export default function Home() {
     setIsButtonDisabled(true);
     setButtonText("Preparing Questions...");
     abortController.current = new AbortController();
-    
-
    
   try {
     // Load the GenerateQuizPrompt template
@@ -101,11 +99,10 @@ export default function Home() {
         const applyHtmlPromptResponse = await fetch('/prompts/ApplyHtmlPrompt.txt');
         let applyHtmlPromptTemplate = await applyHtmlPromptResponse.text();
         
-        // Replace placeholders with actual values
         const applyHtmlPrompt = applyHtmlPromptTemplate
           .replace('{MultipleChoiceQuestionCount}', MultipleChoiceQuestionCount)
           .replace('{TrueFalseQuestionCount}', TrueFalseQuestionCount)
-          .replace('{quizText}', quizText); // Assuming `quizText` is the variable holding the quiz content to apply HTML to
+          .replace('{quizText}', quizText);
         
  
       const htmlResponse = await fetch("/api/chat", {
