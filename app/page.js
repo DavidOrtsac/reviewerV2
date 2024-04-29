@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import PDFUploadForm from './components/PDFUploadForm';
 
 export default function Home() {
   const [streamedData, setStreamedData] = useState("");
@@ -19,6 +20,10 @@ export default function Home() {
 
   const toggleInputArea = () => {
     setIsInputExpanded(!isInputExpanded);
+  };
+
+  const handlePDFText = (parsedText) => {
+    setUserPrompt(parsedText);  // This sets the textarea content
   };
 
   const toggleOptionsVisibility = () => {
@@ -171,17 +176,17 @@ const handleExampleText = async (e) => {
 
   return (
     <main className="bg-white min-h-screen p-4 bg-background-image flex justify-center items-center relative overflow-hidden">
-    <div className="max-w-4xl w-full z-10 relative">
+      <div className="max-w-4xl w-full z-10 relative">
         <div className="text-center mb-8">
-        <h1 className="text-5xl font-bold main-title">
-  The <span className="text-red-600">Self-Quiz</span> Engine
-</h1>
-
+          <h1 className="text-5xl font-bold main-title">
+            The <span className="text-red-600">Self-Quiz</span> Engine
+          </h1>
           <p className="text-xl mt-2">by David Castro</p>
         </div>
 
         {!isGenerating && !streamedData && (
           <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+            <PDFUploadForm onPDFParse={handlePDFText} />
             <form onSubmit={handleChatSubmit} className="space-y-4">
               <textarea
                 className="textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto"
@@ -210,54 +215,56 @@ const handleExampleText = async (e) => {
                 </button>
               </div>
               <div className="mt-4">
-  <button
-    type="button"
-    onClick={toggleOptionsVisibility}
-    className="w-full px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
-  >
-    {showOptions ? 'Hide Options' : 'Show Options'}
-  </button>
-</div>
+                <button
+                  type="button"
+                  onClick={toggleOptionsVisibility}
+                  className="w-full px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                >
+                  {showOptions ? 'Hide Options' : 'Show Options'}
+                </button>
+              </div>
 
-{showOptions && (
-    <div className="mt-4">
-      <div className="text-center">
-        <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">Number of Multiple Choice Questions</label>
-        <input
-          id="multiple-choice-slider"
-          type="range"
-          min="3"
-          max="10"
-          value={MultipleChoiceQuestionCount}
-          onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-        />
-        <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
-      </div>
+              {showOptions && (
+                <div className="mt-4">
+                  <div className="text-center">
+                    <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">
+                      Number of Multiple Choice Questions
+                    </label>
+                    <input
+                      id="multiple-choice-slider"
+                      type="range"
+                      min="3"
+                      max="10"
+                      value={MultipleChoiceQuestionCount}
+                      onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                    <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
+                  </div>
 
-      <div className="text-center mt-4">
-        <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">Number of True/False Questions</label>
-        <input
-          id="true-false-slider"
-          type="range"
-          min="1"
-          max="5"
-          value={TrueFalseQuestionCount}
-          onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-        />
-        <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
-      </div>
-    </div>
-  )}
+                  <div className="text-center mt-4">
+                    <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">
+                      Number of True/False Questions
+                    </label>
+                    <input
+                      id="true-false-slider"
+                      type="range"
+                      min="1"
+                      max="5"
+                      value={TrueFalseQuestionCount}
+                      onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    />
+                    <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
+                  </div>
+                </div>
+              )}
             </form>
           </div>
         )}
 
         <div className={`output-container ${isBlurred ? 'grayed-out' : ''}`}>
-          {streamedData && (
-            <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>
-          )}
+          {streamedData && <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>}
         </div>
 
         {(isGenerating || streamedData) && (
@@ -275,7 +282,9 @@ const handleExampleText = async (e) => {
                 <button
                   type="button"
                   onClick={handleChatSubmit}
-                  className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${isButtonDisabled ? 'bg-gray-400' : 'bg-black text-white hover:bg-gray-700'}`}
+                  className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${
+                    isButtonDisabled ? 'bg-gray-400' : 'bg-black text-white hover:bg-gray-700'
+                  }`}
                   disabled={isButtonDisabled || userPrompt.trim() === ''}
                 >
                   {buttonText}
@@ -297,24 +306,20 @@ const handleExampleText = async (e) => {
           </div>
         )}
 
-<hr></hr>
+        <hr></hr>
 
-{secondOutputComplete && (
+        {secondOutputComplete && (
           <div className="text-center mt-8 mb-4">
             <h2 className="text-2xl font-bold">Got a minute? You don't want to miss the chance to get smarter!</h2>
             <p className="text-md mt-1">Get notified of weekly Reviewer app updates</p>
           </div>
         )}
         {secondOutputComplete && (
-          
           <div className="flex justify-center mb-32">
             <div data-tf-live="01HHWJ49QMHTPZW7Z45W6CKXER"></div>
           </div>
         )}
-
       </div>
     </main>
-
-    
   );
 }
