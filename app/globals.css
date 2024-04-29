@@ -99,6 +99,17 @@ body {
     font-family: 'Open Sans', sans-serif;
 }
 
+.bg-background-image {
+    display: flex;
+    flex-direction: column;
+  }
+   main {
+    flex: 1;
+  } 
+   footer {
+    flex-shrink: 0;
+  }
+
 .root {
     display: flex;
     place-content: center flex-start;
@@ -543,29 +554,6 @@ textarea {
     }
 }
 
-@media screen and (max-width: 600px) {
-  .input-area, .input-field {
-    /* Ensure the input area has more space */
-    flex: 1 0 auto; /* Allows the input field to grow */
-    margin-right: 5px; /* Adjust margin for spacing */
-  }
-
-  .button, .input-toggle-button {
-    padding: 8px; /* Reduce padding for smaller screens */
-    font-size: 12px; /* Reduce font size for smaller buttons */
-    min-width: 50px; /* Set a minimum width for buttons */
-  }
-
-  .fixed-bottom-container {
-    flex-direction: column; /* Stack elements vertically */
-    align-items: stretch; /* Stretch children across the cross axis */
-  }
-
-  .fixed-bottom-container button {
-    margin-top: 5px; /* Add space between buttons when stacked */
-    width: 100%; /* Full width buttons in mobile view */
-  }
-}
 
 @media (max-width: 768px) {
     .example-btn {
@@ -576,3 +564,33 @@ textarea {
   }
 
   
+  /* Here's a better way to handle Mobile CSS */
+@media screen and (max-width: 600px) {
+    .input-area, .input-field {
+        /* Ensure the input area has more space */
+        flex: 1 0 auto; /* Allows the input field to grow */
+        margin-right: 5px; /* Adjust margin for spacing */
+    }
+    
+    .button, .input-toggle-button {
+        padding: 8px; /* Reduce padding for smaller screens */
+        font-size: 12px; /* Reduce font size for smaller buttons */
+        min-width: 50px; /* Set a minimum width for buttons */
+    }
+    
+    .fixed-bottom-container {
+        flex-direction: column; /* Stack elements vertically */
+        align-items: stretch; /* Stretch children across the cross axis */
+    }
+    
+    .fixed-bottom-container button {
+        margin-top: 5px; /* Add space between buttons when stacked */
+        width: 100%; /* Full width buttons in mobile view */
+    }
+    }
+
+@media screen and (max-width: 600px) {
+    .main-title {
+        font-size: 3rem; /* Smaller font size for mobile */
+    }
+}

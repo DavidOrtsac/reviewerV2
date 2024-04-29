@@ -179,9 +179,8 @@ const handleExampleText = async (e) => {
       <div className="max-w-4xl w-full z-10 relative">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold main-title">
-            The <span className="text-red-600">Self-Quiz</span> Engine
+            The <span className="text-red-600">Self-Review</span> Engine
           </h1>
-          <p className="text-xl mt-2">by David Castro</p>
         </div>
 
         {!isGenerating && !streamedData && (
@@ -190,14 +189,14 @@ const handleExampleText = async (e) => {
             <form onSubmit={handleChatSubmit} className="space-y-4">
               <textarea
                 className="textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto"
-                placeholder="Paste your story/essay/report here..."
+                placeholder="Or manually paste your story/essay/report here..."
                 value={userPrompt}
                 onChange={handleInputChange}
                 rows="6"
-                maxLength="20000"
+                maxLength="40000"
               />
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{userPrompt.length}/20000</span>
+                <span className="text-sm text-gray-600">{userPrompt.length}/40000</span>
                 <button
                   type="button"
                   onClick={handleExampleText}
@@ -320,6 +319,10 @@ const handleExampleText = async (e) => {
           </div>
         )}
       </div>
+      <footer className="text-center text-gray-500 text-sm mt-4">
+  &copy; {new Date().getFullYear()} David Castro. All rights reserved.
+</footer> 
     </main>
+    
   );
 }
