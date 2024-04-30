@@ -1,5 +1,3 @@
-// PDFUploadForm.js
-
 import React, { useState } from 'react';
 
 function PDFUploadForm({ onPDFParse }) {
@@ -38,7 +36,7 @@ function PDFUploadForm({ onPDFParse }) {
       }
 
       const data = await response.json();
-      onPDFParse(data.text); // Update the parent component's state
+      onPDFParse(data.text);
       setError('');
     } catch (error) {
       setError('Failed to upload the file. Please try again.');

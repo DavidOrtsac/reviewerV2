@@ -199,7 +199,6 @@ input[type="range"]::-webkit-slider-thumb {
     color: black;
 }
 
-/* Add this to your CSS for the draggable element */
 .cursor-grab {
   cursor: grab;
 }
@@ -430,20 +429,18 @@ textarea {
 }
 
 .streamed-content-container {
-  position: relative; /* Needed for the overlay positioning */
+  position: relative;
 }
 
 .output-container {
   position: relative;
-  overflow: auto; /* Allow scrolling within the container */
-  transition: filter 0.3s ease; /* Smooth transition for the filter effect */
-  /* Set a fixed height or max-height if necessary, e.g., max-height: 500px; */
-  /* Give the output container space below it */
+  overflow: auto;
+  transition: filter 0.3s ease;
   margin-bottom: 50px;
 }
 
 .grayed-out {
-  filter: blur(4px) grayscale(1) opacity(0.5); /* Apply blur, grayscale, and reduce opacity */
+  filter: blur(4px) grayscale(1) opacity(0.5);
 }
 
 @media (max-width: 809px) {
