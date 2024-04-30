@@ -3,16 +3,19 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Open Sans', sans-serif;
-    background: #ffffff;
-}
+    background-color: #ffffff;
+    background-image: radial-gradient(circle, #d9d9d9 1px, transparent 1px),
+                      radial-gradient(circle, #d9d9d9 1px, transparent 1px);
+    background-position: 0 0, 25px 25px;
+    background-size: 50px 50px;
+  }
+  
 
 .main-title, .byline {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Poppins', sans-serif;
 }
 
 .main-title {
@@ -84,31 +87,25 @@ body {
   z-index: 10;
 }
 
-/* Merge common styles */
-
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Open Sans', sans-serif;
-    background: #ffffff;
-}
-
 .header-title h1, .header-subtitle h2, .prompt-box, .choiceBox, .questionBox, .hiddenAnswerBox, .output-header h3, .output-content p {
     font-family: 'Open Sans', sans-serif;
 }
 
-.bg-background-image {
-    display: flex;
-    flex-direction: column;
-  }
    main {
     flex: 1;
   } 
-   footer {
-    flex-shrink: 0;
-  }
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    background-color: #f9f9f9;
+    color: #333;
+    font-size: 0.875rem;
+    text-align: center;
+    border-top: 1px solid #ddd;
+  } 
 
 .root {
     display: flex;
@@ -186,17 +183,11 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .bg-background-image {
-    background-image: url('https://media.discordapp.net/attachments/989274745495240734/1196434011191517195/woah.png?ex=65b79d00&is=65a52800&hm=8edc54609c7f20088de1fff7d3faa91c9e15f6a6c75c64d90e1b9a1e35285484&=&format=webp&quality=lossless&width=1600&height=896');
-    background-size: cover;
-    background-attachment: fixed;
-    z-index: -1;
-    opacity: 1; /* If opacity has been adjusted in the image itself, keep it at 1 */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    /* height: 100%; Remove this line */
-    min-height: 100vh; /* Ensure it covers at least the full viewport height */
+    background-color: #ffffff;
+    background-image: radial-gradient(circle, #e6e6e6 1.5px, transparent 1px),
+                      radial-gradient(circle, #e6e6e6 1.5px, transparent 1px);
+    background-position: 0 0, 25px 25px;
+    background-size: 50px 50px;
   }
 
 
@@ -339,6 +330,7 @@ textarea {
     outline: 1px solid #ccc;
     font-family: 'Varela Round', sans-serif;
     transition: 1s;
+    width: 100%;
 }
 
 .input-instruction {  
@@ -587,10 +579,8 @@ textarea {
         margin-top: 5px; /* Add space between buttons when stacked */
         width: 100%; /* Full width buttons in mobile view */
     }
-    }
-
-@media screen and (max-width: 600px) {
     .main-title {
         font-size: 3rem; /* Smaller font size for mobile */
     }
+
 }

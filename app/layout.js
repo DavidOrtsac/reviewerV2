@@ -4,8 +4,8 @@ import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Self-Quiz Generator',
-  description: 'Self-Quiz Generator',
+  title: 'Self-Review Engine',
+  description: 'Self-Review Engine',
 }
 
 export default function RootLayout({ children }) {
