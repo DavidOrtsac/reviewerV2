@@ -7,7 +7,7 @@
 
 body {
     background-color: #ffffff;
-    background-image: radial-gradient(circle, #d9d9d9 1px, transparent 1px),
+    background-image: radial-gradient(circle, #c9c9c9 1px, transparent 1px),
                       radial-gradient(circle, #d9d9d9 1px, transparent 1px);
     background-position: 0 0, 25px 25px;
     background-size: 50px 50px;
@@ -63,6 +63,59 @@ body {
     display: block;
     width: fit-content;
     margin: 0 auto;
+    transition: transform 0.1s;
+}
+
+.counter {
+    /* your normal counter styles here */
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  @media (max-width: 600px) {
+    .counter {
+      font-size: 0.8em; /* adjust as needed */
+    }
+  }
+
+.button-text-mobile {
+    display: none;
+  }
+  
+  @media (max-width: 600px) {
+    .button-text-desktop {
+      display: none;
+    }
+    .button-text-mobile {
+      display: inline;
+    }
+  }
+
+  .user-input {
+    font-size: 1rem;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  @media (max-width: 600px) {
+    .user-input {
+      font-size: 0.8em;
+    }
+  }
+  
+@media (max-width: 600px) {
+    button {
+      /* smaller button styles for mobile devices */
+      font-size: 0.8em !important; /* adjust as needed */
+      padding: 10px 5px !important; /* adjust as needed */
+    }
+  }
+
+button:active {
+    transform: scale(0.9);
 }
 
 .borderedoutput {
@@ -182,6 +235,10 @@ input[type="range"]::-webkit-slider-thumb {
     background: rgb(180, 0, 0);
   }
 
+.slider {
+    transition: all 0.5s ease;
+  }
+
   .bg-background-image {
     background-color: #ffffff;
     background-image: radial-gradient(circle, #e6e6e6 1.5px, transparent 1px),
@@ -217,33 +274,6 @@ input[type="range"]::-webkit-slider-thumb {
     height: min-content;
     padding: 0px;
     width: min-content;
-}
-
-.use-example-button {
-    background-color: #F9FAFB;
-    color: #111827;
-    border: 1px solid #D1D5DB;
-    padding: 0.5rem 1rem;
-    font-family: 'Open Sans', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.5;
-    cursor: pointer;
-    border-radius: 0.375rem;
-    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    margin: 0;
-    width: auto;
-    height: 2.5rem;
-}
-
-.use-example-button:hover {
-    background-color: #E5E7EB;
-    color: #000000;
-    border-color: #CBD5E1;
 }
 
 .box {
@@ -524,6 +554,20 @@ textarea {
   max-height: 500px; /* Adjust as needed */
 }
 
+.responsive-header {
+    color: #333;
+    font-size: 16px;
+    font-weight: normal;
+    margin-top: 20px;
+  }
+  
+  @media (max-width: 600px) {
+    .responsive-header {
+      font-size: 10px; /* adjust as needed */
+      margin-top: 1px;
+    }
+  }
+
 /* When input is collapsed */
 @media (max-height: 300px) {
   .input-area {
@@ -577,7 +621,19 @@ textarea {
         width: 100%; /* Full width buttons in mobile view */
     }
     .main-title {
-        font-size: 3rem; /* Smaller font size for mobile */
+        font-size: 2rem; /* Smaller font size for mobile */
     }
 
 }
+
+.responsive-input {
+    width: 100%;
+    height: 100%;
+  }
+  
+  @media (max-width: 600px) {
+    .responsive-input {
+      width: 80%; /* adjust as needed */
+      height: 80%;
+    }
+  }

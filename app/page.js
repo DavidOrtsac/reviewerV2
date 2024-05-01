@@ -13,6 +13,7 @@ export default function Home() {
   const [isBlurred, setIsBlurred] = useState(false);
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [buttonText, setButtonText] = useState("Send");
+  const [textSetByUpload, setTextSetByUpload] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const [MultipleChoiceQuestionCount, setMultipleChoiceQuestionCount] = useState(7);
   const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3);
@@ -22,12 +23,27 @@ export default function Home() {
     setIsInputExpanded(!isInputExpanded);
   };
 
+  useEffect(() => {
+    if (textSetByUpload && userPrompt.trim() && !isGenerating) {
+      handleChatSubmit(new Event('submit'));
+      setTextSetByUpload(false); // Reset the flag after processing
+    }
+  }, [userPrompt, textSetByUpload]);  // React on changes in userPrompt and textSetByUpload
+
+
   const handlePDFText = (parsedText) => {
     setUserPrompt(parsedText);
+    setTextSetByUpload(true);
   };
 
   const toggleOptionsVisibility = () => {
     setShowOptions(!showOptions);
+  };
+
+  const handlePDFProcessed = () => {
+    if (userPrompt.trim() !== '') {
+      handleChatSubmit(new Event('submit'));
+    }
   };
 
   useEffect(() => {
@@ -65,6 +81,9 @@ export default function Home() {
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
+    if (isGenerating || !userPrompt.trim()) {
+      return; // Avoid processing empty or re-triggering while already processing
+    }
     setIsGenerating(true);
     setStreamedData("");
     setFirstOutputComplete(false);
@@ -73,6 +92,7 @@ export default function Home() {
     setIsButtonDisabled(true);
     setButtonText("Preparing Questions...");
     abortController.current = new AbortController();
+   
    
   try {
     // Load the GenerateQuizPrompt template
@@ -173,103 +193,102 @@ const handleExampleText = async (e) => {
     }
   };
 
+
   return (
     <main className="bg-white min-h-screen p-4 bg-background-image flex justify-center items-center relative overflow-hidden">
       <div className="max-w-4xl w-full z-10 relative">
-
         {!isGenerating && !streamedData && (
         <div>
               <div className="text-center mb-8">
-              <div style={{ fontFamily: 'Poppins, sans-serif' }} className="font-sans text-4xl text-center mt-1 main-title">
+              <div style={{ fontFamily: 'Playfair Display, serif' }} className="font-sans text-4xl text-center mt-1 main-title">
   The<span className="text-red-600">SelfReview</span>Engine
-  <br></br>
-  </div>
-
+</div>
+<h2 className="responsive-header mb-10">
+  Test your knowledge - Self-review by turning your study notes into quizzes
+</h2>
         </div>
-          <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+          <div>
+  
+          <PDFUploadForm onPDFParse={handlePDFText} onPDFProcessed={handlePDFProcessed} className="mt-10"/>
             
-            <PDFUploadForm onPDFParse={handlePDFText} />
-            
-            <form onSubmit={handleChatSubmit} className="space-y-4">
-  <textarea
-              className="textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow"
-              placeholder="Or manually paste your story/essay/report here..."
-              value={userPrompt}
-              onChange={handleInputChange}
-              rows="6"
-              maxLength="40000"
-            />
+         <form onSubmit={handleChatSubmit} className="space-y-4">
+         <textarea
+  className="textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input"
+  placeholder="Or manually paste your story/essay/report here..."
+  value={userPrompt}
+  onChange={handleInputChange}
+  rows="6"
+  maxLength="40000"
+/>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{userPrompt.length}/40000</span>
-              <button
-                type="button"
-                onClick={handleExampleText}
-                className="example-btn px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
-                disabled={isGenerating}
-              >
-                Use Example
-              </button>
-              <button
-  type="submit"
-  className={`px-6 py-2 rounded-md transition duration-200 ${
-    isGenerating || userPrompt.trim() === '' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'
-  }`}
-  disabled={isGenerating || userPrompt.trim() === ''}
->
-  Generate
-</button>
-
-            </div>
-
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={toggleOptionsVisibility}
-                className="w-full px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
-              >
-                {showOptions ? 'Hide Options' : 'Show Options'}
-              </button>
-            </div>
-
-            {showOptions && (
-              <div className="mt-4">
-                <div className="text-center">
-                  <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">
-                    Number of Multiple Choice Questions
-                  </label>
-                  <input
-                    id="multiple-choice-slider"
-                    type="range"
-                    min="3"
-                    max="10"
-                    value={MultipleChoiceQuestionCount}
-                    onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
+              <span className="text-sm text-gray-600 counter">{userPrompt.length}/40000</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExampleText}
+                  className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                  disabled={isGenerating}
+                >
+                <span className="button-text-desktop">Use Example</span>
+                <span className="button-text-mobile">Example</span>
+                </button>
+                  <button
+                    type="button"
+                    onClick={toggleOptionsVisibility}
+                    className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                  >
+                   <span className="button-text-desktop">{showOptions ? 'Hide Options' : 'Show Options'}</span>
+                    <span className="button-text-mobile">{showOptions ? 'Options' : 'Options'}</span>
+                  </button>
+                    <button
+                      type="submit"
+                      className={`px-6 py-2 rounded-md transition duration-200 ${
+                        isGenerating || userPrompt.trim() === '' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'
+                      }`}
+                      disabled={isGenerating || userPrompt.trim() === ''}
+                    >
+                      Generate
+                    </button>
+                  </div>
                 </div>
-
-                <div className="text-center mt-4">
-                  <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">
-                    Number of True/False Questions
-                  </label>
-                  <input
-                    id="true-false-slider"
-                    type="range"
-                    min="1"
-                    max="5"
-                    value={TrueFalseQuestionCount}
-                    onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
-                </div>
-              </div>
-            )}
-          </form>
-        </div>
-      </div>
-      )}
+                {showOptions && (
+                  <div className="mt-4">
+                    <div className="text-center">
+                      <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">
+                        Number of Multiple Choice Questions
+                      </label>
+                      <input
+                        id="multiple-choice-slider"
+                        type="range"
+                        min="3"
+                        max="10"
+                        value={MultipleChoiceQuestionCount}
+                        onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                      <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
+                    </div>
+                    <div className="text-center mt-4">
+                      <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">
+                        Number of True/False Questions
+                      </label>
+                      <input
+                        id="true-false-slider"
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={TrueFalseQuestionCount}
+                        onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      />
+                      <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        )}
       <div className={`output-container ${isBlurred ? 'grayed-out' : ''}`}>
         {streamedData && <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>}
       </div>
