@@ -158,6 +158,7 @@ button:active {
     font-size: 0.875rem;
     text-align: center;
     border-top: 1px solid #ddd;
+    z-index: 1000;
   } 
 
 .root {
@@ -231,6 +232,7 @@ input[type="range"]::-webkit-slider-thumb {
     background: rgb(180, 0, 0);
   }
   
+  
   .slider:hover::-ms-thumb {
     background: rgb(180, 0, 0);
   }
@@ -238,6 +240,21 @@ input[type="range"]::-webkit-slider-thumb {
 .slider {
     transition: all 0.5s ease;
   }
+
+  .discord-button {
+    display: inline-block;
+    background-color: #7289DA; /* Discord brand color */
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+}
+
+.discord-button:hover {
+    background-color: #5b6eae;
+}
+
 
   .bg-background-image {
     background-color: #ffffff;

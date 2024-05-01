@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFilePdf, faLightbulb, faPlay } from '@fortawesome/free-solid-svg-icons';
 
 function PDFUploadForm({ onPDFParse, onPDFProcessed }) {
     const [file, setFile] = useState(null);
     const [error, setError] = useState('');
-  
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        setLoaded(true);
+    }, []);
+    
     const handleFileChange = (event) => {
       const selectedFile = event.target.files[0];
       setError('');
@@ -58,9 +65,9 @@ function PDFUploadForm({ onPDFParse, onPDFProcessed }) {
                 />
 <button
   className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-2.5 rounded"
-  type="submit"
+  type="submit" style={{ visibility: loaded ? 'visible' : 'hidden' }}
 >
-<span className="whitespace-nowrap">Use PDF</span>
+<span className="whitespace-nowrap"> <FontAwesomeIcon icon={faFilePdf} /> Use PDF</span>
 </button>
               </div>
             </div>

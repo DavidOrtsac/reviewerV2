@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDiscord } from '@fortawesome/free-brands-svg-icons';
+import { faFilePdf, faLightbulb, faPlay, faCog } from '@fortawesome/free-solid-svg-icons';
 
 export default function Home() {
   const [streamedData, setStreamedData] = useState("");
@@ -18,10 +21,15 @@ export default function Home() {
   const [MultipleChoiceQuestionCount, setMultipleChoiceQuestionCount] = useState(7);
   const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3);
   const [showOptions, setShowOptions] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const toggleInputArea = () => {
     setIsInputExpanded(!isInputExpanded);
   };
+
+  useEffect(() => {
+    setLoaded(true);
+}, []);
 
   useEffect(() => {
     if (textSetByUpload && userPrompt.trim() && !isGenerating) {
@@ -207,7 +215,8 @@ const handleExampleText = async (e) => {
   Test your knowledge - Self-review by turning your study notes into quizzes
 </h2>
         </div>
-          <div>
+          <div className="mb-20"> {/* I'd like this div to have a margin bottom */}
+          {/* To do that, I'd add the class "mb-4" to the div */}
   
           <PDFUploadForm onPDFParse={handlePDFText} onPDFProcessed={handlePDFProcessed} className="mt-10"/>
             
@@ -225,29 +234,29 @@ const handleExampleText = async (e) => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleExampleText}
+                  onClick={handleExampleText} style={{ visibility: loaded ? 'visible' : 'hidden' }}
                   className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
                   disabled={isGenerating}
                 >
-                <span className="button-text-desktop">Use Example</span>
-                <span className="button-text-mobile">Example</span>
+                <span className="button-text-desktop" >< FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Use Example</span>
+                <span className="button-text-mobile"> <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Example</span>
                 </button>
                   <button
                     type="button"
-                    onClick={toggleOptionsVisibility}
+                    onClick={toggleOptionsVisibility} style={{ visibility: loaded ? 'visible' : 'hidden' }}
                     className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
                   >
-                   <span className="button-text-desktop">{showOptions ? 'Hide Options' : 'Show Options'}</span>
-                    <span className="button-text-mobile">{showOptions ? 'Options' : 'Options'}</span>
+                   <span className="button-text-desktop"><FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {showOptions ? 'Hide Options' : 'Show Options'}</span>
+                    <span className="button-text-mobile"><FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} />{showOptions ? 'Options' : 'Options'}</span>
                   </button>
-                    <button
+                    <button style={{ visibility: loaded ? 'visible' : 'hidden' }}
                       type="submit"
                       className={`px-6 py-2 rounded-md transition duration-200 ${
                         isGenerating || userPrompt.trim() === '' ? 'bg-gray-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'
                       }`}
                       disabled={isGenerating || userPrompt.trim() === ''}
                     >
-                      Generate
+                     <FontAwesomeIcon icon={faPlay} style={{ marginRight: '4px' }} /> Generate
                     </button>
                   </div>
                 </div>
@@ -355,11 +364,15 @@ const handleExampleText = async (e) => {
         </div>
       )}
     </div>
-    <footer className="text-center text-gray-500 text-sm">
+    <footer className={`${isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 bg-white text-center text-gray-500 text-sm p-4`}>
     &copy; {new Date().getFullYear()} David Castro. All rights reserved.
     <br></br>
 <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.1</a>
-  </footer> 
+<br></br>
+<a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: loaded ? 'visible' : 'hidden' }}>
+                <FontAwesomeIcon icon={faDiscord} /> Discord
+            </a>
+  </footer>
   </main>
 
   );
