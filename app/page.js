@@ -260,6 +260,8 @@ const handleExampleText = async (e) => {
                     </button>
                   </div>
                 </div>
+                <br></br>
+                <p className="text-sm text-gray-600 text-center">Files uploaded will not be stored</p>
                 {showOptions && (
                   <div className="mt-4">
                     <div className="text-center">
