@@ -1,0 +1,3 @@
+Convert the following passage into a quiz. It must include {MultipleChoiceQuestionCount} multiple-choice questions (four choices each), {TrueFalseQuestionCount} True/False questions with two choices, and the correct answer appended at the end of each respective question. BE SURE TO RANDOMIZE YOUR CHOICES:
+
+{userPrompt}
