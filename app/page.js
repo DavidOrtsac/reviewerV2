@@ -103,9 +103,8 @@ export default function Home() {
    
    
   try {
-    // Load the GenerateQuizPrompt template
-    const promptResponse = await fetch('/prompts/GenerateQuizPrompt.txt');
-    let generateQuizPromptTemplate = await promptResponse.text();
+    let promptResponse = await fetch(`/api/prompts?promptName=GenerateQuizPrompt`);
+    let generateQuizPromptTemplate = (await promptResponse.json()).content;
 
     // Replace placeholders with actual values
     const generateQuizPrompt = generateQuizPromptTemplate
@@ -128,9 +127,9 @@ export default function Home() {
         setFirstOutputComplete(true);
         setButtonText("Generating Quiz...");
   
-        const applyHtmlPromptResponse = await fetch('/prompts/ApplyHtmlPrompt.txt');
-        let applyHtmlPromptTemplate = await applyHtmlPromptResponse.text();
-        
+        promptResponse = await fetch(`/api/prompts?promptName=ApplyHtmlPrompt`);
+        let applyHtmlPromptTemplate = (await promptResponse.json()).content;
+
         const applyHtmlPrompt = applyHtmlPromptTemplate
           .replace('{MultipleChoiceQuestionCount}', MultipleChoiceQuestionCount)
           .replace('{TrueFalseQuestionCount}', TrueFalseQuestionCount)
@@ -188,18 +187,18 @@ const handleInputChange = (e) => {
 
 const handleExampleText = async (e) => {
   e.preventDefault();
-    const fileNames = ['AI.txt', 'DigitalMarketing.txt', 'HoneyBees.txt', 'QuantumComputing.txt', 'SolarSystem.txt'];
-    const randomIndex = Math.floor(Math.random() * fileNames.length);
-    const fileName = fileNames[randomIndex];
+  const fileNames = ['AI', 'DigitalMarketing', 'HoneyBees', 'QuantumComputing', 'SolarSystem'];
+  const randomIndex = Math.floor(Math.random() * fileNames.length);
+  const fileName = fileNames[randomIndex];
 
-    try {
-      const response = await fetch(`/prompts/${fileName}`);
-      const text = await response.text();
+  try {
+      const response = await fetch(`/api/prompts?promptName=${fileName}`);
+      const text = (await response.json()).content;
       setUserPrompt(text);
-    } catch (error) {
+  } catch (error) {
       console.error("Error fetching example text:", error);
-    }
-  };
+  }
+};
 
 
   return (
@@ -259,8 +258,8 @@ const handleExampleText = async (e) => {
                      <FontAwesomeIcon icon={faPlay} style={{ marginRight: '4px' }} /> Generate
                     </button>
                   </div>
+                  {/* Add a notice saying that files uploaded will not be stored */}
                 </div>
-                <br></br>
                 <p className="text-sm text-gray-600 text-center">Files uploaded will not be stored</p>
                 {showOptions && (
                   <div className="mt-4">
