@@ -5,6 +5,9 @@ import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { faFilePdf, faLightbulb, faPlay, faCog } from '@fortawesome/free-solid-svg-icons';
+import ReactGA from 'react-ga4';
+
+ReactGA.initialize('G-M9HSPDRDPR');
 
 export default function Home() {
   const [streamedData, setStreamedData] = useState("");
@@ -89,9 +92,25 @@ export default function Home() {
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
-    if (isGenerating || !userPrompt.trim()) {
-      return; // Avoid processing empty or re-triggering while already processing
+
+    // Frontend Validation
+    const n_mcq = parseInt(MultipleChoiceQuestionCount, 10);
+    const n_true_or_false = parseInt(TrueFalseQuestionCount, 10);
+
+    if (isNaN(n_mcq) || n_mcq <= 0) {
+        alert("Number of multiple-choice questions must be a positive integer.");
+        return;
     }
+
+    if (isNaN(n_true_or_false) || n_true_or_false <= 0) {
+        alert("Number of true/false questions must be a positive integer.");
+        return;
+    }
+
+    if (isGenerating || !userPrompt.trim()) {
+        return;
+    }
+
     setIsGenerating(true);
     setStreamedData("");
     setFirstOutputComplete(false);
@@ -100,6 +119,7 @@ export default function Home() {
     setIsButtonDisabled(true);
     setButtonText("Preparing Questions...");
     abortController.current = new AbortController();
+    
    
    
   try {
