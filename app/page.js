@@ -324,10 +324,18 @@ const handleExampleText = async (e) => {
                 >
                   <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> YouTube URL to Quiz (Coming Soon)
                 </button>
+                <button
+                  type="button"
+                  className="px-6 py-2 bg-gray-400 ml-4 text-white rounded-md transition duration-200"
+                  disabled
+                >
+                  <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> Flashcards (Coming Soon)
+                </button>
               </div>
             </div>
           </div>
         )}
+
       <div className={`output-container ${isBlurred ? 'grayed-out' : ''}`}>
         {streamedData && <div dangerouslySetInnerHTML={{ __html: streamedData }}></div>}
       </div>
