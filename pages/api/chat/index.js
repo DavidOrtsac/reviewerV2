@@ -5,14 +5,13 @@ import { ChatGroq } from "@langchain/groq";
 export default async function handler(req, res) {
   const { prompt } = req.body;
 
-  // Initialize the model for GPT-4
+  // Initialize the model for GPT-4o
   const gpt4Model = new ChatOpenAI({
-    modelName: 'gpt-4-turbo', // Assuming 'gpt-4' is the correct model name
+    modelName: 'gpt-4o', // Assuming 'gpt-4' is the correct model name
     maxTokens: 2000,
     streaming: true, // Enable streaming for GPT-4 as well
   });
 
-  // Initialize the model for GPT-3.5
   const gpt35Model = new ChatOpenAI({
     modelName: 'gpt-3.5-turbo-16k',
     maxTokens: 2000,
@@ -35,7 +34,7 @@ export default async function handler(req, res) {
     // Determine if the prompt is for quiz generation or HTML application
     if (prompt.startsWith("Convert the following passage into a quiz")) {
       // Handle quiz generation with GPT-4 and stream the response
-      await groqModel2.call([new HumanChatMessage(prompt)], {
+      await gpt4Model.call([new HumanChatMessage(prompt)], {
         callbacks: [
           {
             handleLLMNewToken(token) {

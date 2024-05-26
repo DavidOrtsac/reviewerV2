@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-import { faFilePdf, faLightbulb, faPlay, faCog } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
 
 ReactGA.initialize('G-M9HSPDRDPR');
@@ -316,6 +316,15 @@ const handleExampleText = async (e) => {
                   </div>
                 )}
               </form>
+              <div className="flex justify-center mt-4">
+                <button
+                  type="button"
+                  className="px-6 py-2 bg-gray-400 text-white rounded-md transition duration-200"
+                  disabled
+                >
+                  <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> YouTube URL to Quiz (Coming Soon)
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -388,7 +397,7 @@ const handleExampleText = async (e) => {
     <footer className={`${isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 bg-white text-center text-gray-500 text-sm p-4`}>
     &copy; {new Date().getFullYear()} David Castro. All rights reserved.
     <br></br>
-<a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.1</a>
+<a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.26</a>
 <br></br>
 <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: loaded ? 'visible' : 'hidden' }}>
                 <FontAwesomeIcon icon={faDiscord} /> Discord
