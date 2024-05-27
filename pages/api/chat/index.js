@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     // Determine if the prompt is for quiz generation or HTML application
     if (prompt.startsWith("Convert the following passage into a quiz")) {
       // Handle quiz generation with GPT-4 and stream the response
-      await gpt4Model.call([new HumanChatMessage(prompt)], {
+      await groqModel.call([new HumanChatMessage(prompt)], {
         callbacks: [
           {
             handleLLMNewToken(token) {
