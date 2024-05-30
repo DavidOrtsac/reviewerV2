@@ -63,7 +63,7 @@ body {
     display: block;
     width: fit-content;
     margin: 0 auto;
-    transition: transform 0.1s;
+    transition: all 0.5s;
 }
 
 .counter {
@@ -221,7 +221,7 @@ input[type="range"]::-webkit-slider-thumb {
     height: 25px;
     cursor: pointer; /* Cursor on hover */
     border-radius: 50%; /* Circular thumb */
-    transition: all 0.3s ease; /* Transition for smooth sliding */
+    transition: all 0.5s ease; /* Transition for smooth sliding */
   }
 
   .slider:hover::-webkit-slider-thumb {
@@ -248,7 +248,7 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 8px 16px;
     border-radius: 4px;
     margin-top: 10px;
-    transition: background-color 0.3s;
+    transition: background-color 0.5s;
 }
 
 .discord-button:hover {
@@ -330,7 +330,7 @@ input[type="range"]::-webkit-slider-thumb {
     color: transparent;
     content: "hover to see answer";
     background: linear-gradient(180deg, #ffffff 0%, #f9f9f9 100%);
-    transition: 1s;
+    transition: 0.5s;
 }
 
 .hiddenAnswerBox:hover {
@@ -375,7 +375,7 @@ textarea {
     border: 1px solid #ccc;
     outline: 1px solid #ccc;
     font-family: 'Varela Round', sans-serif;
-    transition: 1s;
+    transition: 0.5s;
     width: 100%;
 }
 
@@ -482,7 +482,7 @@ textarea {
 .output-container {
   position: relative;
   overflow: auto;
-  transition: filter 0.3s ease;
+  transition: filter 0.5s ease;
   margin-bottom: 50px;
 }
 
@@ -704,5 +704,21 @@ textarea {
   /* apply a transition time to main whenever it does anything */
   /* this will make the transition smooth */
   main {
+    transition: all 0.5s;
+  }
+
+  .counter {
+    transition: all 0.5s;
+  }
+
+  .responsive-header {
+    transition: all 0.5s;
+  }
+
+  footer {
+    transition: all 0.5s;
+  }
+
+  .block {
     transition: all 0.5s;
   }
