@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
 
 ReactGA.initialize('G-M9HSPDRDPR');
@@ -25,6 +25,10 @@ export default function Home() {
   const [TrueFalseQuestionCount, setTrueFalseQuestionCount] = useState(3);
   const [showOptions, setShowOptions] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedPreference = localStorage.getItem("darkMode");
+    return savedPreference ? JSON.parse(savedPreference) : false;
+  });
 
   const toggleInputArea = () => {
     setIsInputExpanded(!isInputExpanded);
@@ -37,9 +41,14 @@ export default function Home() {
   useEffect(() => {
     if (textSetByUpload && userPrompt.trim() && !isGenerating) {
       handleChatSubmit(new Event('submit'));
-      setTextSetByUpload(false); // Reset the flag after processing
+      setTextSetByUpload(false);
     }
-  }, [userPrompt, textSetByUpload]);  // React on changes in userPrompt and textSetByUpload
+  }, [userPrompt, textSetByUpload]);
+
+  useEffect(() => {
+    document.body.classList.toggle('dark-mode', darkMode);
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+  }, [darkMode]);
 
 
   const handlePDFText = (parsedText) => {
@@ -220,9 +229,13 @@ const handleExampleText = async (e) => {
   }
 };
 
+const toggleDarkMode = () => {
+  setDarkMode(!darkMode);
+};
+
 
   return (
-    <main className="bg-white min-h-screen p-4 bg-background-image flex justify-center items-center relative overflow-hidden">
+    <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
       <div className="max-w-4xl w-full z-10 relative">
         {!isGenerating && !streamedData && (
         <div>
@@ -230,18 +243,21 @@ const handleExampleText = async (e) => {
               <div style={{ fontFamily: 'Playfair Display, serif' }} className="font-sans text-4xl text-center mt-1 main-title">
   The<span className="text-red-600">SelfReview</span>Engine
 </div>
-<h2 className="responsive-header mb-10">
+<h2 className={`responsive-header mb-10 ${darkMode ? 'text-white' : 'text-black'}`}>
   Test your knowledge - Self-review by turning your study notes into quizzes
 </h2>
+
+<button onClick={toggleDarkMode} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
+              <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
+            </button>
         </div>
-          <div className="mb-20"> {/* I'd like this div to have a margin bottom */}
-          {/* To do that, I'd add the class "mb-4" to the div */}
+          <div className="mb-20">
   
           <PDFUploadForm onPDFParse={handlePDFText} onPDFProcessed={handlePDFProcessed} className="mt-10"/>
             
          <form onSubmit={handleChatSubmit} className="space-y-4">
          <textarea
-  className="textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input"
+  className={`textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}
   placeholder="Or manually paste your story/essay/report here..."
   value={userPrompt}
   onChange={handleInputChange}
@@ -249,7 +265,7 @@ const handleExampleText = async (e) => {
   maxLength="40000"
 />
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600 counter">{userPrompt.length}/40000</span>
+              <span className={`text-sm text-gray-600 counter ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{userPrompt.length}/40000</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -278,13 +294,14 @@ const handleExampleText = async (e) => {
                      <FontAwesomeIcon icon={faPlay} style={{ marginRight: '4px' }} /> Generate
                     </button>
                   </div>
-                  {/* Add a notice saying that files uploaded will not be stored */}
                 </div>
-                <p className="text-sm text-gray-600 text-center">Files uploaded will not be stored</p>
+                <p className={`text-sm text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+  Files uploaded will not be stored
+</p>
                 {showOptions && (
                   <div className="mt-4">
                     <div className="text-center">
-                      <label htmlFor="multiple-choice-slider" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="multiple-choice-slider" className={`block text-sm font-medium text-gray-700 ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
                         Number of Multiple Choice Questions
                       </label>
                       <input
@@ -296,10 +313,10 @@ const handleExampleText = async (e) => {
                         onChange={(e) => setMultipleChoiceQuestionCount(e.target.value)}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
-                      <div className="text-sm text-gray-600 mt-2">{MultipleChoiceQuestionCount}</div>
+                      <div className={`text-sm text-gray-600 mt-2 ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{MultipleChoiceQuestionCount}</div>
                     </div>
                     <div className="text-center mt-4">
-                      <label htmlFor="true-false-slider" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="true-false-slider" className={`block text-sm font-medium text-gray-700 ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
                         Number of True/False Questions
                       </label>
                       <input
@@ -311,7 +328,7 @@ const handleExampleText = async (e) => {
                         onChange={(e) => setTrueFalseQuestionCount(e.target.value)}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
-                      <div className="text-sm text-gray-600 mt-2">{TrueFalseQuestionCount}</div>
+                      <div className={`text-sm text-gray-600 mt-2 ${darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{TrueFalseQuestionCount}</div>
                     </div>
                   </div>
                 )}
@@ -402,15 +419,15 @@ const handleExampleText = async (e) => {
         </div>
       )}
     </div>
-    <footer className={`${isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 bg-white text-center text-gray-500 text-sm p-4`}>
-    &copy; {new Date().getFullYear()} David Castro. All rights reserved.
-    <br></br>
-<a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.26</a>
-<br></br>
-<a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: loaded ? 'visible' : 'hidden' }}>
-                <FontAwesomeIcon icon={faDiscord} /> Discord
-            </a>
-  </footer>
+    <footer className={`${isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 ${darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
+        &copy; {new Date().getFullYear()} David Castro. All rights reserved.
+        <br></br>
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.26</a>
+        <br></br>
+        <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: loaded ? 'visible' : 'hidden' }}>
+          <FontAwesomeIcon icon={faDiscord} /> Discord
+        </a>
+      </footer>
   </main>
 
   );

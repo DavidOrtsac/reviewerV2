@@ -577,6 +577,52 @@ textarea {
     font-weight: normal;
     margin-top: 20px;
   }
+
+  .dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+  }
+  
+  .dark-mode .bg-white {
+    background-color: #333;
+  }
+  
+  .dark-mode .text-black {
+    color: #e0e0e0;
+  }
+  
+  .dark-mode .border-gray-300 {
+    border-color: #555;
+  }
+  
+  .dark-mode .bg-gray-200 {
+    background-color: #444;
+  }
+  
+  .dark-mode .bg-gray-300 {
+    background-color: #555;
+  }
+  
+  .dark-mode .bg-red-600 {
+    background-color: #e53935;
+  }
+  
+  .dark-mode .bg-gray-400 {
+    background-color: #666;
+  }
+  
+  .dark-mode .bg-black {
+    background-color: #000;
+  }
+  
+  .dark-mode .text-white {
+    color: #fff;
+  }
+  
+  .dark-mode .hover\:bg-gray-700:hover {
+    background-color: #666;
+  }
+  
   
   @media (max-width: 600px) {
     .responsive-header {
@@ -653,4 +699,10 @@ textarea {
       width: 80%; /* adjust as needed */
       height: 80%;
     }
+  }
+
+  /* apply a transition time to main whenever it does anything */
+  /* this will make the transition smooth */
+  main {
+    transition: all 0.5s;
   }
