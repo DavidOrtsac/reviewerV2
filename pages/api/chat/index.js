@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   // Initialize the model for GPT-4o
   const gpt4Model = new ChatOpenAI({
-    modelName: 'gpt-4o', // Assuming 'gpt-4' is the correct model name
+    modelName: 'gpt-4o-mini', // Assuming 'gpt-4' is the correct model name
     maxTokens: 2000,
     streaming: true, // Enable streaming for GPT-4 as well
   });
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       res.end(); // End the response after streaming the quiz content
     } else {
       // Handle HTML application with GPT 3.5 and stream the response
-      await groqModel.call([new HumanChatMessage(prompt)], {
+      await gpt4Model.call([new HumanChatMessage(prompt)], {
         callbacks: [
           {
             handleLLMNewToken(token) {
