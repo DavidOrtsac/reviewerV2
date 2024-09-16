@@ -14,6 +14,32 @@ body {
   }
   
 
+  .quote-container {
+    text-align: center;          /* Center the text inside the container */
+    width: 100%;                 /* Ensure it takes the full width of the screen */
+    padding: 20px 0;             /* Add padding for breathing space */
+    margin: 0 auto;              /* Ensure it's properly centered */
+  }
+  
+  .quote-text {
+    font-size: 18px;             /* Slightly increase the font size */
+    color: #333;                 /* Use a neutral dark color */
+    font-style: italic;
+  }
+  
+  .quote-author {
+    font-weight: bold;           /* Emphasize author */
+    margin-top: 5px;
+  }
+  
+  .quote-note {
+    font-size: 14px;             /* Make the note slightly smaller */
+    color: #666;                 /* Softer color for the humorous note */
+    margin-top: 10px;
+  }
+  
+  
+
 .main-title, .byline {
     font-family: 'Poppins', sans-serif;
 }
