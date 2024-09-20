@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
+import './switch.css'; // Adjust path as necessary
 
 ReactGA.initialize('G-M9HSPDRDPR');
 
@@ -24,17 +25,24 @@ export default function Home() {
     MultipleChoiceQuestionCount: 7,
     TrueFalseQuestionCount: 3,
     showOptions: false,
-    loaded: false,
+    loaded: false, // Ensure initial state is consistent
     darkMode: false,
+    useAdvancedPrompt: false, // State for toggle switch
   });
+
   const abortController = useRef(null);
 
-  const toggleInputArea = () => {
-    setState(prev => ({ ...prev, isInputExpanded: !prev.isInputExpanded }));
-  };
+  useEffect(() => {
+    setState(prev => ({ ...prev, loaded: true })); // Ensure this doesn't run on server
+  }, []);
 
   useEffect(() => {
-    setState(prev => ({ ...prev, loaded: true }));
+    if (typeof window !== 'undefined') {
+      const savedPreference = localStorage.getItem("darkMode");
+      if (savedPreference) {
+        setState(prev => ({ ...prev, darkMode: JSON.parse(savedPreference) }));
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -45,15 +53,10 @@ export default function Home() {
   }, [state.userPrompt, state.textSetByUpload]);
 
   useEffect(() => {
-    const savedPreference = localStorage.getItem("darkMode");
-    if (savedPreference) {
-      setState(prev => ({ ...prev, darkMode: JSON.parse(savedPreference) }));
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('dark-mode', state.darkMode);
+      localStorage.setItem("darkMode", JSON.stringify(state.darkMode));
     }
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', state.darkMode);
-    localStorage.setItem("darkMode", JSON.stringify(state.darkMode));
   }, [state.darkMode]);
 
   const handlePDFText = (parsedText) => {
@@ -123,7 +126,8 @@ export default function Home() {
     abortController.current = new AbortController();
 
     try {
-      const generateQuizPromptTemplate = await fetchPrompt('GenerateQuizPrompt');
+      const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
+      const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
       const generateQuizPrompt = generateQuizPromptTemplate
         .replace('{MultipleChoiceQuestionCount}', n_mcq)
         .replace('{TrueFalseQuestionCount}', n_tf)
@@ -208,6 +212,15 @@ export default function Home() {
     setState(prev => ({ ...prev, darkMode: !state.darkMode }));
   };
 
+  const togglePromptType = () => {
+    setState(prev => ({ ...prev, useAdvancedPrompt: !state.useAdvancedPrompt }));
+  };
+
+  const toggleInputArea = () => {
+    setState(prev => ({ ...prev, isInputExpanded: !prev.isInputExpanded }));
+  };
+
+  
   return (
     <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${state.darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
       <div className="max-w-4xl w-full z-10 relative">
@@ -308,6 +321,28 @@ export default function Home() {
                       />
                       <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{state.TrueFalseQuestionCount}</div>
                     </div>
+                    <div className="text-center mt-4">
+                      <label htmlFor="prompt-type-switch" className={`block text-sm font-medium text-gray-700 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
+                        Quiz Prompt Type
+                      </label>
+                      <div className="flex justify-center items-center mt-2">
+                        <span className="mr-4 text-sm">Basic</span>
+                        <div className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            id="prompt-type-switch"
+                            className="toggle-switch-checkbox"
+                            checked={state.useAdvancedPrompt}
+                            onChange={togglePromptType}
+                          />
+                          <label className="toggle-switch-label" htmlFor="prompt-type-switch">
+                            <span className="toggle-switch-inner"></span>
+                            <span className="toggle-switch-switch"></span>
+                          </label>
+                        </div>
+                        <span className="ml-4 text-sm">Advanced</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </form>
@@ -327,22 +362,19 @@ export default function Home() {
                 >
                   <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> Flashcards (Coming Soon)
                 </button>
-          
               </div>
               <div className="quote-container">
-  <p className="quote-text">
-    "Learning is a treasure that will follow its owner everywhere.*"<br />
-    <span className="quote-author">— Chinese Proverb</span>
-  </p>
-  <p className="quote-note">
-    <em>*Except into an exam</em>
-  </p>
-</div>
+                <p className="quote-text">
+                  "Learning is a treasure that will follow its owner everywhere.*"<br />
+                  <span className="quote-author">— Chinese Proverb</span>
+                </p>
+                <p className="quote-note">
+                  <em>*Except into an exam</em>
+                </p>
+              </div>
             </div>
           </div>
-          
         )}
-        
         <div className={`output-container ${state.isBlurred ? 'grayed-out' : ''}`}>
           {state.streamedData && <div dangerouslySetInnerHTML={{ __html: state.streamedData }}></div>}
         </div>
@@ -400,24 +432,18 @@ export default function Home() {
              <div className="flex justify-center">
                <div data-tf-live="01HHWJ49QMHTPZW7Z45W6CKXER"></div>
              </div>
-             
            </>
-           
          )}
        </div>
-       <br></br>
-
-<footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
-  &copy; {new Date().getFullYear()} David Castro. All rights reserved.
-  <br />
-  <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.5.31</a>
-  <br />
-  <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
-    <FontAwesomeIcon icon={faDiscord} /> Discord
-  </a>
-</footer>
-
-
+      <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
+        &copy; {new Date().getFullYear()} David Castro. All rights reserved.
+        <br />
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.9.20</a>
+        <br />
+        <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
+          <FontAwesomeIcon icon={faDiscord} /> Discord
+        </a>
+      </footer>
     </main>
   );
 }

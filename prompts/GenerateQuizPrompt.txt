@@ -1,3 +1,8 @@
-Meticulously convert the following passage into a difficult, advanced, yet relevant and helpful quiz related to the passage's content. It must include {MultipleChoiceQuestionCount} multiple-choice questions (four randomized choices each), {TrueFalseQuestionCount} True/False questions with two choices, and the correct answer appended at the end of each respective question. BE SURE TO RANDOMIZE YOUR CHOICES. Be sure that your choices should not contain any redundancies:
+Meticulously convert the following passage into a difficult, advanced, yet relevant and helpful quiz related to the passage's content. It must include 
+{MultipleChoiceQuestionCount} multiple-choice questions (four randomized choices each), 
+{TrueFalseQuestionCount} True/False questions with two choices, 
+and the correct answer appended at the end of each respective question. 
+BE SURE TO RANDOMIZE YOUR CHOICES. 
+Be sure that your choices should not contain any redundancies:
 
 {userPrompt}
