@@ -748,3 +748,67 @@ textarea {
   .block {
     transition: all 0.5s;
   }
+
+
+  /* Custom CSS for switch */
+.toggle-switch {
+  position: relative;
+  width: 50px; /* Width of the toggle */
+  height: 24px; /* Height of the toggle */
+  display: inline-block;
+}
+
+.toggle-switch-checkbox {
+  display: none;
+}
+
+.toggle-switch-label {
+  display: block;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid #ddd;
+  border-radius: 20px;
+  background-color: #ccc; /* Default background color */
+  transition: background-color 0.3s ease-in;
+  height: 100%; /* Matches the height of the toggle switch */
+}
+
+.toggle-switch-inner {
+  width: 200%;
+  height: 100%; /* Matches the height of the label */
+  transition: margin 0.3s ease-in-out;
+  display: flex; /* Use flexbox for consistent alignment */
+  align-items: center; /* Center items vertically */
+  justify-content: space-between; /* Pushes the elements to each side */
+}
+
+.toggle-switch-inner:before,
+.toggle-switch-inner:after {
+  content: ""; /* No content since labels are not needed */
+  width: 50%; /* Occupies half of the toggle switch */
+}
+
+.toggle-switch-switch {
+  width: 22px; /* Width of the switch handle */
+  height: 22px; /* Height of the switch handle */
+  background: #fff;
+  border: 2px solid #ddd;
+  border-radius: 50%; /* Makes the handle round */
+  position: absolute;
+  top: 1px; /* Positioned 1px from the top for centering */
+  bottom: 1px; /* Positioned 1px from the bottom for centering */
+  right: 24px; /* Initial position */
+  transition: right 0.3s ease-in-out; /* Smooth transition */
+}
+
+.toggle-switch-checkbox:checked + .toggle-switch-label {
+  background-color: #dc2525; /* Background color when checked */
+}
+
+.toggle-switch-checkbox:checked + .toggle-switch-label .toggle-switch-inner {
+  margin-left: 0; /* Moves the inner container to the right */
+}
+
+.toggle-switch-checkbox:checked + .toggle-switch-label .toggle-switch-switch {
+  right: 1px; /* Moves the switch handle to the left */
+}

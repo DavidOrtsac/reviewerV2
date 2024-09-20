@@ -6,7 +6,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
-import './switch.css'; // Adjust path as necessary
 
 ReactGA.initialize('G-M9HSPDRDPR');
 
