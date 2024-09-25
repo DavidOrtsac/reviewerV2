@@ -773,6 +773,14 @@ textarea {
   height: 100%; /* Matches the height of the toggle switch */
 }
 
+.iframe-wrapper {
+  display: flex;
+  justify-content: center; /* Center horizontally */
+  align-items: center; /* Center vertically (if needed) */
+  width: 100%; /* Full width of the container */
+}
+
+
 .toggle-switch-inner {
   width: 200%;
   height: 100%; /* Matches the height of the label */
