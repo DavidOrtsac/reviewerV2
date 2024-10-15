@@ -6,15 +6,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
+import DOMPurify from 'dompurify';
 
 ReactGA.initialize('G-M9HSPDRDPR');
 
 export default function Home() {
   const [state, setState] = useState({
-    streamedData: "",
     isGenerating: false,
-    firstOutputComplete: false,
-    secondOutputComplete: false,
     userPrompt: "",
     isBlurred: false,
     isInputExpanded: true,
@@ -24,17 +22,24 @@ export default function Home() {
     MultipleChoiceQuestionCount: 7,
     TrueFalseQuestionCount: 3,
     showOptions: false,
-    loaded: false, // Ensure initial state is consistent
+    loaded: false,
     darkMode: false,
-    useAdvancedPrompt: false, // State for toggle switch
+    useAdvancedPrompt: false,
   });
 
-  const abortController = useRef(null);
+  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [secondOutputComplete, setSecondOutputComplete] = useState(false);
+  const [loadingTime, setLoadingTime] = useState(0);
 
+  const abortController = useRef(null);
+  const loadingInterval = useRef(null);
+
+  // Set loaded to true after component mounts
   useEffect(() => {
-    setState(prev => ({ ...prev, loaded: true })); // Ensure this doesn't run on server
+    setState(prev => ({ ...prev, loaded: true }));
   }, []);
 
+  // Retrieve dark mode preference from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedPreference = localStorage.getItem("darkMode");
@@ -44,13 +49,7 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    if (state.textSetByUpload && state.userPrompt.trim() && !state.isGenerating) {
-      handleChatSubmit();
-      setState(prev => ({ ...prev, textSetByUpload: false }));
-    }
-  }, [state.userPrompt, state.textSetByUpload]);
-
+  // Toggle dark mode class on body and save preference
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.body.classList.toggle('dark-mode', state.darkMode);
@@ -58,47 +57,32 @@ export default function Home() {
     }
   }, [state.darkMode]);
 
+  // Handle text set by PDF upload
+  useEffect(() => {
+    if (state.textSetByUpload && state.userPrompt.trim() && !state.isGenerating) {
+      handleChatSubmit();
+      setState(prev => ({ ...prev, textSetByUpload: false }));
+    }
+  }, [state.userPrompt, state.textSetByUpload]);
+
+  // Handle PDF text parsing
   const handlePDFText = (parsedText) => {
     setState(prev => ({ ...prev, userPrompt: parsedText, textSetByUpload: true }));
   };
 
+  // Toggle visibility of options
   const toggleOptionsVisibility = () => {
-    setState(prev => ({ ...prev, showOptions: !state.showOptions }));
+    setState(prev => ({ ...prev, showOptions: !prev.showOptions }));
   };
 
-  useEffect(() => {
-    if (state.secondOutputComplete) {
-      const script = document.createElement("script");
-      script.src = "//embed.typeform.com/next/embed.js";
-      script.async = true;
-      document.body.appendChild(script);
-    }
-  }, [state.secondOutputComplete]);
-
-  const streamResponse = async (response, setResponseData, onStreamStart, onComplete) => {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let data = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (onStreamStart && data === '') onStreamStart();
-        data += decoder.decode(value, { stream: true }).replace(/\n/g, '');
-        setResponseData(data);
-      }
-      if (onComplete) onComplete(data);
-    } catch (error) {
-      console.error("Streaming error:", error);
-    }
-  };
-
+  // Fetch prompt from API
   const fetchPrompt = async (promptName) => {
     const response = await fetch(`/api/prompts?promptName=${promptName}`);
+    if (!response.ok) throw new Error(`Failed to fetch prompt: ${response.status}`);
     return (await response.json()).content;
   };
 
+  // Handle form submission to generate quiz
   const handleChatSubmit = async (e) => {
     e?.preventDefault();
 
@@ -115,22 +99,39 @@ export default function Home() {
     setState(prev => ({
       ...prev,
       isGenerating: true,
-      streamedData: "",
-      firstOutputComplete: false,
-      secondOutputComplete: false,
       isBlurred: true,
       isButtonDisabled: true,
       buttonText: "Preparing Questions...",
     }));
     abortController.current = new AbortController();
 
+    // Start loading time counter
+    setLoadingTime(0);
+    loadingInterval.current = setInterval(() => {
+      setLoadingTime(prevTime => prevTime + 10);
+    }, 10);
+
     try {
       const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
       const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
+
       const generateQuizPrompt = generateQuizPromptTemplate
         .replace('{MultipleChoiceQuestionCount}', n_mcq)
         .replace('{TrueFalseQuestionCount}', n_tf)
-        .replace('{userPrompt}', state.userPrompt);
+        .replace('{userPrompt}', state.userPrompt)
+        .concat(`
+Please generate a quiz based on the provided text. For multiple-choice questions, include options labeled A), B), C), and D). For true/false questions, simply state "True" or "False" as the answer. Please format the quiz as follows:
+
+Question {number}: {question text}
+{Optionally for MCQs:}
+A) {Option A}
+B) {Option B}
+C) {Option C}
+D) {Option D}
+Answer: {Answer}
+
+Ensure there is an empty line between questions.
+`);
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -141,32 +142,26 @@ export default function Home() {
 
       if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
 
-      await streamResponse(quizResponse, data => setState(prev => ({ ...prev, streamedData: data })), null, async (quizText) => {
-        setState(prev => ({ ...prev, firstOutputComplete: true, buttonText: "Generating Quiz..." }));
+      const quizText = await quizResponse.text();
 
-        const applyHtmlPromptTemplate = await fetchPrompt('ApplyHtmlPrompt');
-        const applyHtmlPrompt = applyHtmlPromptTemplate
-          .replace('{MultipleChoiceQuestionCount}', n_mcq)
-          .replace('{TrueFalseQuestionCount}', n_tf)
-          .replace('{quizText}', quizText);
+      const parsedQuizData = parseQuizData(quizText);
+      setQuizQuestions(parsedQuizData);
 
-        const htmlResponse = await fetch("/api/chat", {
-          method: "POST",
-          body: JSON.stringify({ prompt: applyHtmlPrompt }),
-          headers: { "Content-Type": "application/json" },
-          signal: abortController.current.signal,
-        });
+      // Proceed to generate HTML if needed
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        isBlurred: false,
+        isButtonDisabled: false,
+        buttonText: "Send",
+      }));
 
-        if (!htmlResponse.ok) throw new Error(`HTTP error! status: ${htmlResponse.status}`);
+      // Stop loading time counter
+      clearInterval(loadingInterval.current);
 
-        await streamResponse(htmlResponse, data => setState(prev => ({ ...prev, streamedData: data })), () => {
-          setState(prev => ({ ...prev, isBlurred: false }));
-        }, () => {
-          setState(prev => ({ ...prev, secondOutputComplete: true }));
-        });
+      // Simulate second output complete if needed
+      setSecondOutputComplete(true);
 
-        setState(prev => ({ ...prev, isGenerating: false, isButtonDisabled: false, buttonText: "Send" }));
-      });
     } catch (error) {
       if (error.name !== 'AbortError') console.error("Error during fetch:", error);
       setState(prev => ({
@@ -176,24 +171,71 @@ export default function Home() {
         isButtonDisabled: false,
         buttonText: "Send",
       }));
+      clearInterval(loadingInterval.current);
     }
   };
 
+  // Parse the quiz text into structured data
+  const parseQuizData = (data) => {
+    const lines = data.split('\n');
+    const questions = [];
+    let currentQuestion = null;
+
+    for (let line of lines) {
+      line = line.trim();
+      if (/^Question \d+:/.test(line)) {
+        if (currentQuestion) {
+          currentQuestion.showAnswer = false;
+          questions.push(currentQuestion);
+        }
+        currentQuestion = {
+          question: line.replace(/^Question \d+:\s*/, ''),
+          options: [],
+          answer: '',
+          type: '',
+          showAnswer: false,
+        };
+      } else if (/^[A-D]\)/.test(line)) {
+        currentQuestion.options.push(line);
+        currentQuestion.type = 'Multiple Choice';
+      } else if (/^Answer:/.test(line)) {
+        currentQuestion.answer = line.replace(/^Answer:\s*/, '');
+        if (!currentQuestion.type) {
+          currentQuestion.type = 'True/False';
+        }
+      } else if (line === '') {
+        // Empty line, skip
+      } else {
+        if (currentQuestion && !currentQuestion.options.length) {
+          currentQuestion.question += ' ' + line;
+        }
+      }
+    }
+
+    if (currentQuestion) {
+      currentQuestion.showAnswer = false;
+      questions.push(currentQuestion);
+    }
+
+    return questions;
+  };
+
+  // Handle cancellation of ongoing request
   const handleCancel = () => {
     if (abortController.current) {
       abortController.current.abort();
       setState(prev => ({
         ...prev,
         isGenerating: false,
-        firstOutputComplete: false,
-        secondOutputComplete: false,
         isBlurred: false,
         isButtonDisabled: false,
         buttonText: "Send",
       }));
+      clearInterval(loadingInterval.current);
     }
   };
 
+  // Handle example text loading
   const handleExampleText = async (e) => {
     e.preventDefault();
     const fileNames = ['AI', 'DigitalMarketing', 'HoneyBees', 'QuantumComputing', 'SolarSystem'];
@@ -207,22 +249,35 @@ export default function Home() {
     }
   };
 
+  // Toggle dark mode
   const toggleDarkMode = () => {
-    setState(prev => ({ ...prev, darkMode: !state.darkMode }));
+    setState(prev => ({ ...prev, darkMode: !prev.darkMode }));
   };
 
+  // Toggle prompt type between Basic and Advanced
   const togglePromptType = () => {
-    setState(prev => ({ ...prev, useAdvancedPrompt: !state.useAdvancedPrompt }));
+    setState(prev => ({ ...prev, useAdvancedPrompt: !prev.useAdvancedPrompt }));
   };
 
+  // Toggle input area visibility
   const toggleInputArea = () => {
     setState(prev => ({ ...prev, isInputExpanded: !prev.isInputExpanded }));
   };
 
   return (
     <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${state.darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+      {/* Loading Screen */}
+      {state.isGenerating && (
+        <div className="loading-overlay fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-75 z-50">
+          <div className="text-2xl mb-4">Generating Quiz...</div>
+          <div className="loading-animation text-xl mb-4">Please wait</div>
+          <div className="text-lg">Elapsed Time: {(loadingTime / 1000).toFixed(2)} seconds</div>
+        </div>
+      )}
+
       <div className="max-w-4xl w-full z-10 relative">
-        {!state.isGenerating && !state.streamedData && (
+        {/* Initial UI */}
+        {!state.isGenerating && quizQuestions.length === 0 && (
           <div>
             <div className="text-center mb-8">
               <div style={{ fontFamily: 'Playfair Display, serif' }} className="font-sans text-4xl text-center mt-1 main-title">
@@ -257,12 +312,7 @@ export default function Home() {
                       className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
                       disabled={state.isGenerating}
                     >
-                      <span className="button-text-desktop">
-                        <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Use Example
-                      </span>
-                      <span className="button-text-mobile">
-                        <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Example
-                      </span>
+                      <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Example
                     </button>
                     <button
                       type="button"
@@ -270,12 +320,7 @@ export default function Home() {
                       style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
                       className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
                     >
-                      <span className="button-text-desktop">
-                        <FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {state.showOptions ? 'Hide Options' : 'Show Options'}
-                      </span>
-                      <span className="button-text-mobile">
-                        <FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {state.showOptions ? 'Options' : 'Options'}
-                      </span>
+                      <FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {state.showOptions ? 'Hide Options' : 'Show Options'}
                     </button>
                     <button
                       type="submit"
@@ -291,7 +336,7 @@ export default function Home() {
                 {state.showOptions && (
                   <div className="mt-4">
                     <div className="text-center">
-                      <label htmlFor="multiple-choice-slider" className={`block text-sm font-medium text-gray-700 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
+                      <label htmlFor="multiple-choice-slider" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
                         Number of Multiple Choice Questions
                       </label>
                       <input
@@ -303,10 +348,10 @@ export default function Home() {
                         onChange={e => setState(prev => ({ ...prev, MultipleChoiceQuestionCount: e.target.value }))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
-                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{state.MultipleChoiceQuestionCount}</div>
+                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white' : 'text-black'}`}>{state.MultipleChoiceQuestionCount}</div>
                     </div>
                     <div className="text-center mt-4">
-                      <label htmlFor="true-false-slider" className={`block text-sm font-medium text-gray-700 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
+                      <label htmlFor="true-false-slider" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
                         Number of True/False Questions
                       </label>
                       <input
@@ -318,10 +363,10 @@ export default function Home() {
                         onChange={e => setState(prev => ({ ...prev, TrueFalseQuestionCount: e.target.value }))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
-                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{state.TrueFalseQuestionCount}</div>
+                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white' : 'text-black'}`}>{state.TrueFalseQuestionCount}</div>
                     </div>
                     <div className="text-center mt-4">
-                      <label htmlFor="prompt-type-switch" className={`block text-sm font-medium text-gray-700 ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>
+                      <label htmlFor="prompt-type-switch" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
                         Quiz Prompt Type
                       </label>
                       <div className="flex justify-center items-center mt-2">
@@ -364,20 +409,19 @@ export default function Home() {
               </div>
               
               {/* Embedded iframe */}
-{/* Embedded iframe */}
-<div className="iframe-wrapper mt-10 flex justify-center items-center">
-  <iframe
-    src="https://lu.ma/embed/event/evt-t6GaPVkTzzLTkpM/simple"
-    width="600"
-    height="450"
-    frameBorder="0"
-    style={{ border: '1px solid #bfcbda88', borderRadius: '4px' }}
-    allowFullScreen
-    aria-hidden="false"
-    tabIndex="0"
-  ></iframe>
-</div>
-
+              <div className="iframe-wrapper mt-10 flex justify-center items-center">
+                <iframe
+                  src="https://lu.ma/embed/event/evt-t6GaPVkTzzLTkpM/simple"
+                  width="600"
+                  height="450"
+                  frameBorder="0"
+                  style={{ border: '1px solid #bfcbda88', borderRadius: '4px' }}
+                  allowFullScreen
+                  aria-hidden="false"
+                  tabIndex="0"
+                ></iframe>
+              </div>
+              
               <div className="quote-container mt-10">
                 <p className="quote-text">
                   "Learning is a treasure that will follow its owner everywhere.*"<br />
@@ -390,17 +434,67 @@ export default function Home() {
             </div>
           </div>
         )}
-        <div className={`output-container ${state.isBlurred ? 'grayed-out' : ''}`}>
-          {state.streamedData && <div dangerouslySetInnerHTML={{ __html: state.streamedData }}></div>}
-        </div>
-        {(state.isGenerating || state.streamedData) && (
+
+        {/* Quiz Display */}
+        {quizQuestions.length > 0 && (
+          <div className="quiz-container mb-20">
+            {quizQuestions.map((question, index) => (
+              <div key={index} className="question mb-6 p-4 border rounded-lg shadow-md">
+                <p className="font-bold mb-2">{index + 1}. {question.question}</p>
+                {question.type === 'Multiple Choice' && (
+                  <ul className="ml-4 list-disc">
+                    {question.options.map((option, idx) => (
+                      <li key={idx}>{option}</li>
+                    ))}
+                  </ul>
+                )}
+                {question.type === 'True/False' && (
+                  <p className="ml-4">Answer options: True or False</p>
+                )}
+                <button
+                  onClick={() => {
+                    setQuizQuestions(prevQuestions =>
+                      prevQuestions.map((q, i) =>
+                        i === index ? { ...q, showAnswer: !q.showAnswer } : q
+                      )
+                    );
+                  }}
+                  className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition duration-200"
+                >
+                  {question.showAnswer ? 'Hide Answer' : 'Show Answer'}
+                </button>
+                {question.showAnswer && (
+                  <p className="mt-2"><strong>Answer:</strong> {question.answer}</p>
+                )}
+              </div>
+            ))}
+
+            {/* Optional: Additional UI after quiz */}
+            {secondOutputComplete && (
+              <>
+                <div className="text-center mt-8 mb-4">
+                  <hr />
+                  <br />
+                  <h2 className="text-2xl font-bold">Got a minute? You don't want to miss the chance to get smarter!</h2>
+                  <p className="text-md mt-1">Get notified of weekly Reviewer app updates</p>
+                </div>
+                <div className="flex justify-center">
+                  <div data-tf-live="01HHWJ49QMHTPZW7Z45W6CKXER"></div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Fixed Bottom Input Area */}
+        {(state.isGenerating || quizQuestions.length > 0) && (
           <div>
-            <div className="fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center">
+            <div className={`fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center ${state.darkMode ? 'bg-gray-800' : 'bg-white'}`}>
               {state.isInputExpanded && (
                 <>
                   <input
                     type="text"
-                    className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg mr-4"
+                    className={`w-full p-4 text-lg border-2 border-gray-300 rounded-lg mr-4 ${state.darkMode ? 'text-white bg-gray-700' : 'text-black bg-white'}`}
                     placeholder="Type your message..."
                     value={state.userPrompt}
                     onChange={e => setState(prev => ({ ...prev, userPrompt: e.target.value }))}
@@ -409,7 +503,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleChatSubmit}
-                    className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${state.isButtonDisabled ? 'bg-gray-400' : 'bg-black text-white hover:bg-gray-700'}`}
+                    className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${state.isButtonDisabled ? 'bg-gray-400 text-white' : 'bg-black text-white hover:bg-gray-700'}`}
                     disabled={state.isButtonDisabled || !state.userPrompt.trim()}
                   >
                     {state.buttonText}
@@ -425,35 +519,26 @@ export default function Home() {
                   )}
                 </>
               )}
-              <div className="input-toggle-button" onClick={toggleInputArea}>
+              <div className="input-toggle-button cursor-pointer" onClick={toggleInputArea}>
                 {state.isInputExpanded ? '▲' : '▼'}
               </div>
             </div>
           </div>
         )}
-        {state.firstOutputComplete && (
+
+        {/* First Output Complete Message */}
+        {quizQuestions.length > 0 && (
           <div className="text-center mt-8 mb-4">
             <p className="text-md">Please note that the questions are generated by AI and may contain mistakes. Consider verifying information.</p>
           </div>
         )}
-        {state.secondOutputComplete && (
-          <>
-            <div className="text-center mt-8 mb-4">
-              <hr />
-              <br />
-              <h2 className="text-2xl font-bold">Got a minute? You don't want to miss the chance to get smarter!</h2>
-              <p className="text-md mt-1">Get notified of weekly Reviewer app updates</p>
-            </div>
-            <div className="flex justify-center">
-              <div data-tf-live="01HHWJ49QMHTPZW7Z45W6CKXER"></div>
-            </div>
-          </>
-        )}
       </div>
+
+      {/* Footer */}
       <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
         &copy; {new Date().getFullYear()} David Castro. All rights reserved.
         <br />
-        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.9.20</a>
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.15</a>
         <br />
         <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
           <FontAwesomeIcon icon={faDiscord} /> Discord
