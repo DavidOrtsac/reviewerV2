@@ -65,6 +65,16 @@ export default function Home() {
     }
   }, [state.userPrompt, state.textSetByUpload]);
 
+    // Load Typeform script when second output is complete
+    useEffect(() => {
+      if (secondOutputComplete) {
+        const script = document.createElement("script");
+        script.src = "//embed.typeform.com/next/embed.js";
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }, [secondOutputComplete]);
+
   // Handle PDF text parsing
   const handlePDFText = (parsedText) => {
     setState(prev => ({ ...prev, userPrompt: parsedText, textSetByUpload: true }));
@@ -529,6 +539,7 @@ Ensure there is an empty line between questions.
             )}
           </div>
         )}
+
 
         {/* Fixed Bottom Input Area */}
         {(state.isGenerating || quizQuestions.length > 0) && (
