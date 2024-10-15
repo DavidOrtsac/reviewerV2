@@ -1,8 +1,23 @@
 Meticulously convert the following passage into a difficult, advanced, yet relevant and helpful quiz related to the passage's content. It must include 
 {MultipleChoiceQuestionCount} multiple-choice questions (four randomized choices each), 
 {TrueFalseQuestionCount} True/False questions with two choices, 
-and the correct answer appended at the end of each respective question. 
+and the correct answer appended at the end of each respective question.
+
+For each question, also include a brief explanation (1-2 sentences) of why the correct answer is correct.
+
 BE SURE TO RANDOMIZE YOUR CHOICES. 
-Be sure that your choices should not contain any redundancies:
+Ensure that your choices do not contain any redundancies.
+
+Please format the quiz as follows:
+
+Question {number}: {question text}
+A) {Option A}
+B) {Option B}
+C) {Option C}
+D) {Option D}
+Answer: {Answer}
+Explanation: {Explanation}
+
+Ensure there is an empty line between questions.
 
 {userPrompt}

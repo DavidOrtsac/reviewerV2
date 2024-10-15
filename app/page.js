@@ -1,12 +1,13 @@
+// page.js
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
-import DOMPurify from 'dompurify';
 
 ReactGA.initialize('G-M9HSPDRDPR');
 
@@ -65,15 +66,15 @@ export default function Home() {
     }
   }, [state.userPrompt, state.textSetByUpload]);
 
-    // Load Typeform script when second output is complete
-    useEffect(() => {
-      if (secondOutputComplete) {
-        const script = document.createElement("script");
-        script.src = "//embed.typeform.com/next/embed.js";
-        script.async = true;
-        document.body.appendChild(script);
-      }
-    }, [secondOutputComplete]);
+  // Load Typeform script when second output is complete
+  useEffect(() => {
+    if (secondOutputComplete) {
+      const script = document.createElement("script");
+      script.src = "//embed.typeform.com/next/embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, [secondOutputComplete]);
 
   // Handle PDF text parsing
   const handlePDFText = (parsedText) => {
@@ -128,20 +129,7 @@ export default function Home() {
       const generateQuizPrompt = generateQuizPromptTemplate
         .replace('{MultipleChoiceQuestionCount}', n_mcq)
         .replace('{TrueFalseQuestionCount}', n_tf)
-        .replace('{userPrompt}', state.userPrompt)
-        .concat(`
-Please generate a quiz based on the provided text. For multiple-choice questions, include options labeled A), B), C), and D). For true/false questions, the options are "True" or "False". Please format the quiz as follows:
-
-Question {number}: {question text}
-{Optionally for MCQs:}
-A) {Option A}
-B) {Option B}
-C) {Option C}
-D) {Option D}
-Answer: {Answer}
-
-Ensure there is an empty line between questions.
-`);
+        .replace('{userPrompt}', state.userPrompt);
 
       const quizResponse = await fetch("/api/chat", {
         method: "POST",
@@ -169,7 +157,7 @@ Ensure there is an empty line between questions.
       // Stop loading time counter
       clearInterval(loadingInterval.current);
 
-      // Simulate second output complete if needed
+      // Set second output complete to true
       setSecondOutputComplete(true);
 
     } catch (error) {
@@ -202,6 +190,7 @@ Ensure there is an empty line between questions.
           question: line.replace(/^Question \d+:\s*/, ''),
           options: [],
           answer: '',
+          explanation: '',
           type: '',
           showAnswer: false,
           selectedOption: null,
@@ -217,6 +206,8 @@ Ensure there is an empty line between questions.
           currentQuestion.type = 'True/False';
           currentQuestion.options = ['True', 'False'];
         }
+      } else if (/^Explanation:/.test(line)) {
+        currentQuestion.explanation = line.replace(/^Explanation:\s*/, '');
       } else if (line === '') {
         // Empty line, skip
       } else {
@@ -242,7 +233,6 @@ Ensure there is an empty line between questions.
           const isCorrect = q.type === 'Multiple Choice'
             ? option.startsWith(q.answer)
             : option === q.answer;
-
           return {
             ...q,
             selectedOption: option,
@@ -512,18 +502,23 @@ Ensure there is an empty line between questions.
                   })}
                 </div>
                 {question.isAnswered && (
-                  <p className="mt-2">
-                    {question.isCorrect ? (
-                      <span className="text-green-600 font-bold">Correct!</span>
-                    ) : (
-                      <span className="text-red-600 font-bold">Incorrect!</span>
-                    )} The correct answer is: <strong>{question.answer}</strong>
-                  </p>
+                  <>
+                    <p className="mt-2">
+                      {question.isCorrect ? (
+                        <span className="text-green-600 font-bold">Correct!</span>
+                      ) : (
+                        <span className="text-red-600 font-bold">Incorrect!</span>
+                      )} The correct answer is: <strong>{question.answer}</strong>
+                    </p>
+                    {question.explanation && (
+                      <p className="mt-2"><strong>Explanation:</strong> {question.explanation}</p>
+                    )}
+                  </>
                 )}
               </div>
             ))}
 
-            {/* Optional: Additional UI after quiz */}
+            {/* Typeform Feedback Button */}
             {secondOutputComplete && (
               <>
                 <div className="text-center mt-8 mb-4">
@@ -539,7 +534,6 @@ Ensure there is an empty line between questions.
             )}
           </div>
         )}
-
 
         {/* Fixed Bottom Input Area */}
         {(state.isGenerating || quizQuestions.length > 0) && (
