@@ -120,7 +120,7 @@ export default function Home() {
         .replace('{TrueFalseQuestionCount}', n_tf)
         .replace('{userPrompt}', state.userPrompt)
         .concat(`
-Please generate a quiz based on the provided text. For multiple-choice questions, include options labeled A), B), C), and D). For true/false questions, simply state "True" or "False" as the answer. Please format the quiz as follows:
+Please generate a quiz based on the provided text. For multiple-choice questions, include options labeled A), B), C), and D). For true/false questions, the options are "True" or "False". Please format the quiz as follows:
 
 Question {number}: {question text}
 {Optionally for MCQs:}
@@ -194,6 +194,9 @@ Ensure there is an empty line between questions.
           answer: '',
           type: '',
           showAnswer: false,
+          selectedOption: null,
+          isAnswered: false,
+          isCorrect: null,
         };
       } else if (/^[A-D]\)/.test(line)) {
         currentQuestion.options.push(line);
@@ -202,6 +205,7 @@ Ensure there is an empty line between questions.
         currentQuestion.answer = line.replace(/^Answer:\s*/, '');
         if (!currentQuestion.type) {
           currentQuestion.type = 'True/False';
+          currentQuestion.options = ['True', 'False'];
         }
       } else if (line === '') {
         // Empty line, skip
@@ -218,6 +222,28 @@ Ensure there is an empty line between questions.
     }
 
     return questions;
+  };
+
+  // Handle option selection
+  const handleOptionSelect = (questionIndex, option) => {
+    setQuizQuestions(prevQuestions =>
+      prevQuestions.map((q, i) => {
+        if (i === questionIndex && !q.isAnswered) {
+          const isCorrect = q.type === 'Multiple Choice'
+            ? option.startsWith(q.answer)
+            : option === q.answer;
+
+          return {
+            ...q,
+            selectedOption: option,
+            isAnswered: true,
+            isCorrect,
+            showAnswer: true,
+          };
+        }
+        return q;
+      })
+    );
   };
 
   // Handle cancellation of ongoing request
@@ -441,30 +467,48 @@ Ensure there is an empty line between questions.
             {quizQuestions.map((question, index) => (
               <div key={index} className="question mb-6 p-4 border rounded-lg shadow-md">
                 <p className="font-bold mb-2">{index + 1}. {question.question}</p>
-                {question.type === 'Multiple Choice' && (
-                  <ul className="ml-4 list-disc">
-                    {question.options.map((option, idx) => (
-                      <li key={idx}>{option}</li>
-                    ))}
-                  </ul>
-                )}
-                {question.type === 'True/False' && (
-                  <p className="ml-4">Answer options: True or False</p>
-                )}
-                <button
-                  onClick={() => {
-                    setQuizQuestions(prevQuestions =>
-                      prevQuestions.map((q, i) =>
-                        i === index ? { ...q, showAnswer: !q.showAnswer } : q
-                      )
+                <div className="options-container">
+                  {question.options.map((option, idx) => {
+                    const isSelected = question.selectedOption === option;
+                    const isCorrectOption = question.type === 'Multiple Choice'
+                      ? option.startsWith(question.answer)
+                      : option === question.answer;
+                    let optionStyle = 'px-4 py-2 mb-2 text-left w-full rounded';
+
+                    if (question.isAnswered) {
+                      if (isSelected && question.isCorrect) {
+                        optionStyle += ' bg-green-500 text-white';
+                      } else if (isSelected && !question.isCorrect) {
+                        optionStyle += ' bg-red-500 text-white';
+                      } else if (isCorrectOption) {
+                        optionStyle += ' bg-green-200 text-black';
+                      } else {
+                        optionStyle += ' bg-gray-200 text-black';
+                      }
+                    } else {
+                      optionStyle += ' bg-gray-100 hover:bg-gray-200';
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        className={optionStyle}
+                        onClick={() => handleOptionSelect(index, option)}
+                        disabled={question.isAnswered}
+                      >
+                        {option}
+                      </button>
                     );
-                  }}
-                  className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition duration-200"
-                >
-                  {question.showAnswer ? 'Hide Answer' : 'Show Answer'}
-                </button>
-                {question.showAnswer && (
-                  <p className="mt-2"><strong>Answer:</strong> {question.answer}</p>
+                  })}
+                </div>
+                {question.isAnswered && (
+                  <p className="mt-2">
+                    {question.isCorrect ? (
+                      <span className="text-green-600 font-bold">Correct!</span>
+                    ) : (
+                      <span className="text-red-600 font-bold">Incorrect!</span>
+                    )} The correct answer is: <strong>{question.answer}</strong>
+                  </p>
                 )}
               </div>
             ))}
