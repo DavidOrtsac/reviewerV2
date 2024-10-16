@@ -3,7 +3,7 @@ Meticulously convert the following passage into a difficult, advanced, yet relev
 {TrueFalseQuestionCount} True/False questions with two choices, 
 and the correct answer appended at the end of each respective question.
 
-For each question, also include a brief explanation (1-2 sentences) of why the correct answer is correct.
+For each question, also include a brief explanation (1-4 sentences) of why the correct answer is correct, AND why the other choices are incorrect. Be insightful, avoid parroting or simply rephrasing the question, and provide value to the quiz-taker.
 
 BE SURE TO RANDOMIZE YOUR CHOICES. 
 Ensure that your choices do not contain any redundancies.

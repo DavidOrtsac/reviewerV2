@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-import { faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon, faSave, faTrash, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
 
 ReactGA.initialize('G-M9HSPDRDPR');
@@ -26,11 +26,14 @@ export default function Home() {
     loaded: false,
     darkMode: false,
     useAdvancedPrompt: false,
+    showSidebar: false,
   });
 
   const [quizQuestions, setQuizQuestions] = useState([]);
+  const [savedQuizzes, setSavedQuizzes] = useState([]);
   const [secondOutputComplete, setSecondOutputComplete] = useState(false);
   const [loadingTime, setLoadingTime] = useState(0);
+  const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
 
   const abortController = useRef(null);
   const loadingInterval = useRef(null);
@@ -38,7 +41,17 @@ export default function Home() {
   // Set loaded to true after component mounts
   useEffect(() => {
     setState(prev => ({ ...prev, loaded: true }));
+    // Load saved quizzes from localStorage
+    const quizzes = localStorage.getItem('savedQuizzes');
+    if (quizzes) {
+      setSavedQuizzes(JSON.parse(quizzes));
+    }
   }, []);
+
+  // Save quizzes to localStorage whenever savedQuizzes state changes
+  useEffect(() => {
+    localStorage.setItem('savedQuizzes', JSON.stringify(savedQuizzes));
+  }, [savedQuizzes]);
 
   // Retrieve dark mode preference from localStorage
   useEffect(() => {
@@ -93,6 +106,39 @@ export default function Home() {
     return (await response.json()).content;
   };
 
+  // Function to split text into chunks based on token limit
+  const splitTextIntoChunks = (text, maxTokensPerChunk) => {
+    // Approximate tokens per character (this is a rough estimate)
+    const tokensPerChar = 0.25; // Approximately 4 characters per token
+
+    const maxCharsPerChunk = Math.floor(maxTokensPerChunk / tokensPerChar);
+
+    const chunks = [];
+    let start = 0;
+
+    while (start < text.length) {
+      let end = start + maxCharsPerChunk;
+      if (end > text.length) {
+        end = text.length;
+      } else {
+        // Try to break at the end of a sentence
+        const lastPeriod = text.lastIndexOf('.', end);
+        if (lastPeriod > start) {
+          end = lastPeriod + 1;
+        }
+      }
+
+      const chunk = text.slice(start, end).trim();
+      if (chunk.length > 0) {
+        chunks.push(chunk);
+      }
+
+      start = end;
+    }
+
+    return chunks;
+  };
+
   // Handle form submission to generate quiz
   const handleChatSubmit = async (e) => {
     e?.preventDefault();
@@ -102,6 +148,11 @@ export default function Home() {
 
     if (isNaN(n_mcq) || n_mcq <= 0 || isNaN(n_tf) || n_tf <= 0) {
       alert("Question counts must be positive integers.");
+      return;
+    }
+
+    if (n_mcq + n_tf > 20) {
+      alert("Please request 20 questions or fewer.");
       return;
     }
 
@@ -126,24 +177,52 @@ export default function Home() {
       const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
       const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
 
-      const generateQuizPrompt = generateQuizPromptTemplate
-        .replace('{MultipleChoiceQuestionCount}', n_mcq)
-        .replace('{TrueFalseQuestionCount}', n_tf)
-        .replace('{userPrompt}', state.userPrompt);
+      // Split the input text into chunks
+      const maxTokensPerChunk = 2000; // Adjust based on model's context length
+      const textChunks = splitTextIntoChunks(state.userPrompt, maxTokensPerChunk);
 
-      const quizResponse = await fetch("/api/chat", {
-        method: "POST",
-        body: JSON.stringify({ prompt: generateQuizPrompt }),
-        headers: { "Content-Type": "application/json" },
-        signal: abortController.current.signal,
-      });
+      setChunkProgress({ current: 0, total: textChunks.length });
 
-      if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
+      let allQuestions = [];
+      let questionNumberOffset = 0;
 
-      const quizText = await quizResponse.text();
+      for (let i = 0; i < textChunks.length; i++) {
+        const chunk = textChunks[i];
 
-      const parsedQuizData = parseQuizData(quizText);
-      setQuizQuestions(parsedQuizData);
+        const chunkPrompt = generateQuizPromptTemplate
+          .replace('{MultipleChoiceQuestionCount}', n_mcq)
+          .replace('{TrueFalseQuestionCount}', n_tf)
+          .replace('{userPrompt}', chunk);
+
+        const quizResponse = await fetch("/api/chat", {
+          method: "POST",
+          body: JSON.stringify({ prompt: chunkPrompt }),
+          headers: { "Content-Type": "application/json" },
+          signal: abortController.current.signal,
+        });
+
+        if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
+
+        const quizText = await quizResponse.text();
+
+        const parsedQuizData = parseQuizData(quizText);
+
+        // Adjust question numbers
+        parsedQuizData.forEach(q => {
+          q.questionNumber += questionNumberOffset;
+        });
+
+        // Combine questions from all chunks
+        allQuestions = allQuestions.concat(parsedQuizData);
+
+        // Update question number offset
+        questionNumberOffset = allQuestions.length;
+
+        // Update chunk progress
+        setChunkProgress({ current: i + 1, total: textChunks.length });
+      }
+
+      setQuizQuestions(allQuestions);
 
       // Proceed to generate HTML if needed
       setState(prev => ({
@@ -161,7 +240,12 @@ export default function Home() {
       setSecondOutputComplete(true);
 
     } catch (error) {
-      if (error.name !== 'AbortError') console.error("Error during fetch:", error);
+      if (error.name !== 'AbortError') {
+        console.error("Error during fetch:", error);
+        alert(`An error occurred: ${error.message}`);
+      } else {
+        console.log("Fetch aborted by the user.");
+      }
       setState(prev => ({
         ...prev,
         isGenerating: false,
@@ -178,25 +262,31 @@ export default function Home() {
     const lines = data.split('\n');
     const questions = [];
     let currentQuestion = null;
+    let questionNumber = 0;
 
     for (let line of lines) {
       line = line.trim();
-      if (/^Question \d+:/.test(line)) {
-        if (currentQuestion) {
-          currentQuestion.showAnswer = false;
-          questions.push(currentQuestion);
+      if (/^Question (\d+):/.test(line)) {
+        const match = line.match(/^Question (\d+):\s*(.*)/);
+        if (match) {
+          if (currentQuestion) {
+            currentQuestion.showAnswer = false;
+            questions.push(currentQuestion);
+          }
+          questionNumber = parseInt(match[1], 10);
+          currentQuestion = {
+            questionNumber: questionNumber,
+            question: match[2],
+            options: [],
+            answer: '',
+            explanation: '',
+            type: '',
+            showAnswer: false,
+            selectedOption: null,
+            isAnswered: false,
+            isCorrect: null,
+          };
         }
-        currentQuestion = {
-          question: line.replace(/^Question \d+:\s*/, ''),
-          options: [],
-          answer: '',
-          explanation: '',
-          type: '',
-          showAnswer: false,
-          selectedOption: null,
-          isAnswered: false,
-          isCorrect: null,
-        };
       } else if (/^[A-D]\)/.test(line)) {
         currentQuestion.options.push(line);
         currentQuestion.type = 'Multiple Choice';
@@ -272,6 +362,7 @@ export default function Home() {
       setState(prev => ({ ...prev, userPrompt: text }));
     } catch (error) {
       console.error("Error fetching example text:", error);
+      alert(`Error fetching example text: ${error.message}`);
     }
   };
 
@@ -290,18 +381,109 @@ export default function Home() {
     setState(prev => ({ ...prev, isInputExpanded: !prev.isInputExpanded }));
   };
 
+  // Toggle sidebar visibility
+  const toggleSidebar = () => {
+    setState(prev => ({ ...prev, showSidebar: !prev.showSidebar }));
+  };
+
+  // Save current quiz
+  const saveCurrentQuiz = () => {
+    if (quizQuestions.length === 0) {
+      alert("No quiz to save.");
+      return;
+    }
+
+    const quizTitle = prompt("Enter a title for this quiz:", `Quiz ${savedQuizzes.length + 1}`);
+    if (quizTitle === null) return; // User cancelled
+
+    const newQuiz = {
+      id: Date.now(),
+      title: quizTitle,
+      timestamp: new Date().toLocaleString(),
+      questions: quizQuestions,
+    };
+
+    setSavedQuizzes(prevQuizzes => [...prevQuizzes, newQuiz]);
+    alert("Quiz saved successfully!");
+  };
+
+  // Load a saved quiz
+  const loadSavedQuiz = (quizId) => {
+    const quiz = savedQuizzes.find(q => q.id === quizId);
+    if (quiz) {
+      setQuizQuestions(quiz.questions);
+      setSecondOutputComplete(true);
+      // Close the sidebar
+      setState(prev => ({ ...prev, showSidebar: false }));
+    }
+  };
+
+  // Delete a saved quiz
+  const deleteSavedQuiz = (quizId) => {
+    if (window.confirm("Are you sure you want to delete this quiz?")) {
+      setSavedQuizzes(prevQuizzes => prevQuizzes.filter(q => q.id !== quizId));
+    }
+  };
+
   return (
     <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${state.darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+      {/* Sidebar */}
+      {state.showSidebar && (
+        <div className={`fixed top-0 left-0 h-full w-64 bg-gray-100 shadow-lg z-50 overflow-auto ${state.darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
+          <div className="flex justify-between items-center p-4 border-b">
+            <h2 className="text-xl font-bold">Saved Quizzes</h2>
+            <button onClick={toggleSidebar} className="text-lg">
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+          {savedQuizzes.length === 0 ? (
+            <p className="p-4">No saved quizzes.</p>
+          ) : (
+            <ul>
+              {savedQuizzes.map(quiz => (
+                <li key={quiz.id} className="p-4 border-b flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold">{quiz.title}</h3>
+                    <p className="text-sm">{quiz.timestamp}</p>
+                  </div>
+                  <div className="flex items-center">
+                    <button onClick={() => loadSavedQuiz(quiz.id)} className="px-2 py-1 bg-blue-500 text-white rounded mr-2">
+                      Load
+                    </button>
+                    <button onClick={() => deleteSavedQuiz(quiz.id)} className="px-2 py-1 bg-red-500 text-white rounded">
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* Loading Screen */}
       {state.isGenerating && (
-        <div className="loading-overlay fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-75 z-50">
+        <div className="loading-overlay fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-75 z-40">
           <div className="text-2xl mb-4">Generating Quiz...</div>
           <div className="loading-animation text-xl mb-4">Please wait</div>
           <div className="text-lg">Elapsed Time: {(loadingTime / 1000).toFixed(2)} seconds</div>
+          <div className="text-md">Processing chunk {chunkProgress.current} of {chunkProgress.total}</div>
         </div>
       )}
 
       <div className="max-w-4xl w-full z-10 relative">
+        {/* Header with Sidebar Toggle */}
+        <div className="absolute top-4 left-4">
+          <button onClick={toggleSidebar} className="p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
+            <FontAwesomeIcon icon={faBars} />
+          </button>
+        </div>
+
+        {/* Dark Mode Toggle */}
+        <button onClick={toggleDarkMode} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
+          <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
+        </button>
+
         {/* Initial UI */}
         {!state.isGenerating && quizQuestions.length === 0 && (
           <div>
@@ -312,10 +494,6 @@ export default function Home() {
               <h2 className={`responsive-header mb-10 ${state.darkMode ? 'text-white' : 'text-black'}`}>
                 Test your knowledge - Self-review by turning your study notes into quizzes
               </h2>
-              
-              <button onClick={toggleDarkMode} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
-                <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
-              </button>
             </div>
             <div className="mb-20">
               <PDFUploadForm onPDFParse={handlePDFText} className="mt-10" />
@@ -384,7 +562,7 @@ export default function Home() {
                         id="true-false-slider"
                         type="range"
                         min="1"
-                        max="5"
+                        max="10"
                         value={state.TrueFalseQuestionCount}
                         onChange={e => setState(prev => ({ ...prev, TrueFalseQuestionCount: e.target.value }))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
@@ -424,7 +602,7 @@ export default function Home() {
                 >
                   <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> YouTube URL to Quiz (Coming Soon)
                 </button>
-                
+
                 <button
                   type="button"
                   className="px-6 py-2 bg-gray-400 ml-4 text-white rounded-md transition duration-200"
@@ -433,7 +611,7 @@ export default function Home() {
                   <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> Flashcards (Coming Soon)
                 </button>
               </div>
-              
+
               {/* Embedded iframe */}
               <div className="iframe-wrapper mt-10 flex justify-center items-center">
                 <iframe
@@ -447,7 +625,7 @@ export default function Home() {
                   tabIndex="0"
                 ></iframe>
               </div>
-              
+
               <div className="quote-container mt-10">
                 <p className="quote-text">
                   "Learning is a treasure that will follow its owner everywhere.*"<br />
@@ -464,9 +642,14 @@ export default function Home() {
         {/* Quiz Display */}
         {quizQuestions.length > 0 && (
           <div className="quiz-container mb-20">
+            <div className="flex justify-end mb-4">
+              <button onClick={saveCurrentQuiz} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200">
+                <FontAwesomeIcon icon={faSave} style={{ marginRight: '4px' }} /> Save Quiz
+              </button>
+            </div>
             {quizQuestions.map((question, index) => (
               <div key={index} className="question mb-6 p-4 border rounded-lg shadow-md">
-                <p className="font-bold mb-2">{index + 1}. {question.question}</p>
+                <p className="font-bold mb-2">{question.questionNumber}. {question.question}</p>
                 <div className="options-container">
                   {question.options.map((option, idx) => {
                     const isSelected = question.selectedOption === option;
@@ -584,7 +767,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-1000 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
+      <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-30 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
         &copy; {new Date().getFullYear()} David Castro. All rights reserved.
         <br />
         <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.15</a>
