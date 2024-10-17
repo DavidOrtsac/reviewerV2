@@ -6,7 +6,19 @@ import { useState, useRef, useEffect } from "react";
 import PDFUploadForm from './components/PDFUploadForm';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
-import { faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon, faSave, faTrash, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
+import {
+  faLightbulb,
+  faPlay,
+  faCog,
+  faHourglassHalf,
+  faSun,
+  faMoon,
+  faSave,
+  faTrash,
+  faBars,
+  faTimes,
+  faRedo,
+} from '@fortawesome/free-solid-svg-icons';
 import ReactGA from 'react-ga4';
 
 ReactGA.initialize('G-M9HSPDRDPR');
@@ -34,6 +46,7 @@ export default function Home() {
   const [secondOutputComplete, setSecondOutputComplete] = useState(false);
   const [loadingTime, setLoadingTime] = useState(0);
   const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
+  const [quizScore, setQuizScore] = useState(null); // New state for quiz score
 
   const abortController = useRef(null);
   const loadingInterval = useRef(null);
@@ -167,93 +180,119 @@ export default function Home() {
     }));
     abortController.current = new AbortController();
 
+    // Reset quiz score when generating a new quiz
+    setQuizScore(null);
+
     // Start loading time counter
     setLoadingTime(0);
     loadingInterval.current = setInterval(() => {
       setLoadingTime(prevTime => prevTime + 10);
     }, 10);
 
-    try {
-      const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
-      const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
 
-      // Split the input text into chunks
-      const maxTokensPerChunk = 2000; // Adjust based on model's context length
-      const textChunks = splitTextIntoChunks(state.userPrompt, maxTokensPerChunk);
+    while (attempt < maxRetries && !success) {
+      try {
+        attempt++;
+        const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
+        const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
 
-      setChunkProgress({ current: 0, total: textChunks.length });
+        // Split the input text into chunks
+        const maxTokensPerChunk = 2000; // Adjust based on model's context length
+        const textChunks = splitTextIntoChunks(state.userPrompt, maxTokensPerChunk);
 
-      let allQuestions = [];
-      let questionNumberOffset = 0;
+        setChunkProgress({ current: 0, total: textChunks.length });
 
-      for (let i = 0; i < textChunks.length; i++) {
-        const chunk = textChunks[i];
+        let allQuestions = [];
+        let questionNumberOffset = 0;
 
-        const chunkPrompt = generateQuizPromptTemplate
-          .replace('{MultipleChoiceQuestionCount}', n_mcq)
-          .replace('{TrueFalseQuestionCount}', n_tf)
-          .replace('{userPrompt}', chunk);
+        for (let i = 0; i < textChunks.length; i++) {
+          const chunk = textChunks[i];
 
-        const quizResponse = await fetch("/api/chat", {
-          method: "POST",
-          body: JSON.stringify({ prompt: chunkPrompt }),
-          headers: { "Content-Type": "application/json" },
-          signal: abortController.current.signal,
-        });
+          const chunkPrompt = generateQuizPromptTemplate
+            .replace('{MultipleChoiceQuestionCount}', n_mcq)
+            .replace('{TrueFalseQuestionCount}', n_tf)
+            .replace('{userPrompt}', chunk);
 
-        if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
+          const quizResponse = await fetch("/api/chat", {
+            method: "POST",
+            body: JSON.stringify({ prompt: chunkPrompt }),
+            headers: { "Content-Type": "application/json" },
+            signal: abortController.current.signal,
+          });
 
-        const quizText = await quizResponse.text();
+          if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
 
-        const parsedQuizData = parseQuizData(quizText);
+          const quizText = await quizResponse.text();
 
-        // Adjust question numbers
-        parsedQuizData.forEach(q => {
-          q.questionNumber += questionNumberOffset;
-        });
+          const parsedQuizData = parseQuizData(quizText);
 
-        // Combine questions from all chunks
-        allQuestions = allQuestions.concat(parsedQuizData);
+          // Adjust question numbers
+          parsedQuizData.forEach(q => {
+            q.questionNumber += questionNumberOffset;
+          });
 
-        // Update question number offset
-        questionNumberOffset = allQuestions.length;
+          // Combine questions from all chunks
+          allQuestions = allQuestions.concat(parsedQuizData);
 
-        // Update chunk progress
-        setChunkProgress({ current: i + 1, total: textChunks.length });
+          // Update question number offset
+          questionNumberOffset = allQuestions.length;
+
+          // Update chunk progress
+          setChunkProgress({ current: i + 1, total: textChunks.length });
+        }
+
+        setQuizQuestions(allQuestions);
+
+        // Proceed to generate HTML if needed
+        setState(prev => ({
+          ...prev,
+          isGenerating: false,
+          isBlurred: false,
+          isButtonDisabled: false,
+          buttonText: "Send",
+        }));
+
+        // Stop loading time counter
+        clearInterval(loadingInterval.current);
+
+        // Set second output complete to true
+        setSecondOutputComplete(true);
+
+        success = true;
+
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log("Fetch aborted by the user.");
+          setState(prev => ({
+            ...prev,
+            isGenerating: false,
+            isBlurred: false,
+            isButtonDisabled: false,
+            buttonText: "Send",
+          }));
+          clearInterval(loadingInterval.current);
+          return;
+        } else {
+          console.error(`Attempt ${attempt} failed:`, error);
+          if (attempt >= maxRetries) {
+            alert(`An error occurred after ${maxRetries} attempts: ${error.message}`);
+            setState(prev => ({
+              ...prev,
+              isGenerating: false,
+              isBlurred: false,
+              isButtonDisabled: false,
+              buttonText: "Send",
+            }));
+            clearInterval(loadingInterval.current);
+            return;
+          }
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-
-      setQuizQuestions(allQuestions);
-
-      // Proceed to generate HTML if needed
-      setState(prev => ({
-        ...prev,
-        isGenerating: false,
-        isBlurred: false,
-        isButtonDisabled: false,
-        buttonText: "Send",
-      }));
-
-      // Stop loading time counter
-      clearInterval(loadingInterval.current);
-
-      // Set second output complete to true
-      setSecondOutputComplete(true);
-
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error("Error during fetch:", error);
-        alert(`An error occurred: ${error.message}`);
-      } else {
-        console.log("Fetch aborted by the user.");
-      }
-      setState(prev => ({
-        ...prev,
-        isGenerating: false,
-        isBlurred: false,
-        isButtonDisabled: false,
-        buttonText: "Send",
-      }));
-      clearInterval(loadingInterval.current);
     }
   };
 
@@ -317,8 +356,8 @@ export default function Home() {
 
   // Handle option selection
   const handleOptionSelect = (questionIndex, option) => {
-    setQuizQuestions(prevQuestions =>
-      prevQuestions.map((q, i) => {
+    setQuizQuestions(prevQuestions => {
+      const updatedQuestions = prevQuestions.map((q, i) => {
         if (i === questionIndex && !q.isAnswered) {
           const isCorrect = q.type === 'Multiple Choice'
             ? option.startsWith(q.answer)
@@ -332,8 +371,33 @@ export default function Home() {
           };
         }
         return q;
-      })
+      });
+
+      // Check if all questions have been answered
+      const allAnswered = updatedQuestions.every(q => q.isAnswered);
+      if (allAnswered) {
+        const correctAnswers = updatedQuestions.filter(q => q.isCorrect).length;
+        const totalQuestions = updatedQuestions.length;
+        const score = Math.round((correctAnswers / totalQuestions) * 100);
+        setQuizScore(score);
+      }
+
+      return updatedQuestions;
+    });
+  };
+
+  // Reset quiz answers
+  const resetQuiz = () => {
+    setQuizQuestions(prevQuestions =>
+      prevQuestions.map(q => ({
+        ...q,
+        selectedOption: null,
+        isAnswered: false,
+        isCorrect: null,
+        showAnswer: false,
+      }))
     );
+    setQuizScore(null); // Reset quiz score
   };
 
   // Handle cancellation of ongoing request
@@ -413,6 +477,7 @@ export default function Home() {
     if (quiz) {
       setQuizQuestions(quiz.questions);
       setSecondOutputComplete(true);
+      setQuizScore(null); // Reset quiz score when loading a saved quiz
       // Close the sidebar
       setState(prev => ({ ...prev, showSidebar: false }));
     }
@@ -472,17 +537,15 @@ export default function Home() {
       )}
 
       <div className="max-w-4xl w-full z-10 relative">
-        {/* Header with Sidebar Toggle */}
-        <div className="absolute top-4 left-4">
+        {/* Header with Sidebar Toggle and Dark Mode Toggle */}
+        <header className="flex justify-between items-center mb-4">
           <button onClick={toggleSidebar} className="p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
             <FontAwesomeIcon icon={faBars} />
           </button>
-        </div>
-
-        {/* Dark Mode Toggle */}
-        <button onClick={toggleDarkMode} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
-          <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
-        </button>
+          <button onClick={toggleDarkMode} className="p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
+            <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
+          </button>
+        </header>
 
         {/* Initial UI */}
         {!state.isGenerating && quizQuestions.length === 0 && (
@@ -643,8 +706,11 @@ export default function Home() {
         {quizQuestions.length > 0 && (
           <div className="quiz-container mb-20">
             <div className="flex justify-end mb-4">
-              <button onClick={saveCurrentQuiz} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200">
+              <button onClick={saveCurrentQuiz} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200 mr-2">
                 <FontAwesomeIcon icon={faSave} style={{ marginRight: '4px' }} /> Save Quiz
+              </button>
+              <button onClick={resetQuiz} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition duration-200">
+                <FontAwesomeIcon icon={faRedo} style={{ marginRight: '4px' }} /> Reset Quiz
               </button>
             </div>
             {quizQuestions.map((question, index) => (
@@ -700,6 +766,14 @@ export default function Home() {
                 )}
               </div>
             ))}
+
+            {/* Display Quiz Score */}
+            {quizScore !== null && (
+              <div className="text-center mt-8 mb-4">
+                <h2 className="text-2xl font-bold">Quiz Completed!</h2>
+                <p className="text-lg mt-2">Your Score: {quizScore}%</p>
+              </div>
+            )}
 
             {/* Typeform Feedback Button */}
             {secondOutputComplete && (
@@ -770,7 +844,7 @@ export default function Home() {
       <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-30 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
         &copy; {new Date().getFullYear()} David Castro. All rights reserved.
         <br />
-        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.15</a>
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.16</a>
         <br />
         <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
           <FontAwesomeIcon icon={faDiscord} /> Discord
