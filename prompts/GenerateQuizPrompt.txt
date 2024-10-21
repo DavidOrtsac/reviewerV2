@@ -8,7 +8,7 @@ For each question, also include a brief explanation (1-4 sentences) of why the c
 BE SURE TO RANDOMIZE YOUR CHOICES. 
 Ensure that your choices do not contain any redundancies.
 
-Please format the quiz as follows:
+Please **strictly** format the quiz as follows (do not deviate):
 
 Question {number}: {question text}
 A) {Option A}
@@ -18,6 +18,6 @@ D) {Option D}
 Answer: {Answer}
 Explanation: {Explanation}
 
-Ensure there is an empty line between questions.
+Ensure there is an empty line between questions and do not include any additional text.
 
 {userPrompt}
