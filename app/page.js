@@ -39,14 +39,16 @@ export default function Home() {
     darkMode: false,
     useAdvancedPrompt: false,
     showSidebar: false,
+    quizMode: 'general', // New state for quiz mode selection
   });
+
 
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [savedQuizzes, setSavedQuizzes] = useState([]);
   const [secondOutputComplete, setSecondOutputComplete] = useState(false);
   const [loadingTime, setLoadingTime] = useState(0);
   const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
-  const [quizScore, setQuizScore] = useState(null); // New state for quiz score
+  const [quizScore, setQuizScore] = useState(null);
 
   const abortController = useRef(null);
   const loadingInterval = useRef(null);
@@ -54,7 +56,6 @@ export default function Home() {
   // Set loaded to true after component mounts
   useEffect(() => {
     setState(prev => ({ ...prev, loaded: true }));
-    // Load saved quizzes from localStorage
     const quizzes = localStorage.getItem('savedQuizzes');
     if (quizzes) {
       setSavedQuizzes(JSON.parse(quizzes));
@@ -121,11 +122,8 @@ export default function Home() {
 
   // Function to split text into chunks based on token limit
   const splitTextIntoChunks = (text, maxTokensPerChunk) => {
-    // Approximate tokens per character (this is a rough estimate)
-    const tokensPerChar = 0.25; // Approximately 4 characters per token
-
+    const tokensPerChar = 0.25;
     const maxCharsPerChunk = Math.floor(maxTokensPerChunk / tokensPerChar);
-
     const chunks = [];
     let start = 0;
 
@@ -134,24 +132,26 @@ export default function Home() {
       if (end > text.length) {
         end = text.length;
       } else {
-        // Try to break at the end of a sentence
         const lastPeriod = text.lastIndexOf('.', end);
         if (lastPeriod > start) {
           end = lastPeriod + 1;
         }
       }
-
       const chunk = text.slice(start, end).trim();
       if (chunk.length > 0) {
         chunks.push(chunk);
       }
-
       start = end;
     }
 
     return chunks;
   };
 
+  const handleQuizModeChange = (event) => {
+    setState(prev => ({ ...prev, quizMode: event.target.value }));
+  };
+
+  
   // Handle form submission to generate quiz
   const handleChatSubmit = async (e) => {
     e?.preventDefault();
@@ -180,10 +180,7 @@ export default function Home() {
     }));
     abortController.current = new AbortController();
 
-    // Reset quiz score when generating a new quiz
     setQuizScore(null);
-
-    // Start loading time counter
     setLoadingTime(0);
     loadingInterval.current = setInterval(() => {
       setLoadingTime(prevTime => prevTime + 10);
@@ -198,9 +195,7 @@ export default function Home() {
         attempt++;
         const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
         const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
-
-        // Split the input text into chunks
-        const maxTokensPerChunk = 2000; // Adjust based on model's context length
+        const maxTokensPerChunk = 2000;
         const textChunks = splitTextIntoChunks(state.userPrompt, maxTokensPerChunk);
 
         setChunkProgress({ current: 0, total: textChunks.length });
@@ -210,7 +205,6 @@ export default function Home() {
 
         for (let i = 0; i < textChunks.length; i++) {
           const chunk = textChunks[i];
-
           const chunkPrompt = generateQuizPromptTemplate
             .replace('{MultipleChoiceQuestionCount}', n_mcq)
             .replace('{TrueFalseQuestionCount}', n_tf)
@@ -226,27 +220,17 @@ export default function Home() {
           if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
 
           const quizText = await quizResponse.text();
-
           const parsedQuizData = parseQuizData(quizText);
-
-          // Adjust question numbers
           parsedQuizData.forEach(q => {
             q.questionNumber += questionNumberOffset;
           });
 
-          // Combine questions from all chunks
           allQuestions = allQuestions.concat(parsedQuizData);
-
-          // Update question number offset
           questionNumberOffset = allQuestions.length;
-
-          // Update chunk progress
           setChunkProgress({ current: i + 1, total: textChunks.length });
         }
 
         setQuizQuestions(allQuestions);
-
-        // Proceed to generate HTML if needed
         setState(prev => ({
           ...prev,
           isGenerating: false,
@@ -255,12 +239,8 @@ export default function Home() {
           buttonText: "Send",
         }));
 
-        // Stop loading time counter
         clearInterval(loadingInterval.current);
-
-        // Set second output complete to true
         setSecondOutputComplete(true);
-
         success = true;
 
       } catch (error) {
@@ -289,7 +269,6 @@ export default function Home() {
             clearInterval(loadingInterval.current);
             return;
           }
-          // Wait a bit before retrying
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
@@ -301,7 +280,6 @@ export default function Home() {
     const lines = data.split('\n');
     const questions = [];
     let currentQuestion = null;
-    let questionNumber = 0;
 
     for (let line of lines) {
       line = line.trim();
@@ -312,9 +290,8 @@ export default function Home() {
             currentQuestion.showAnswer = false;
             questions.push(currentQuestion);
           }
-          questionNumber = parseInt(match[1], 10);
           currentQuestion = {
-            questionNumber: questionNumber,
+            questionNumber: parseInt(match[1], 10),
             question: match[2],
             options: [],
             answer: '',
@@ -330,13 +307,13 @@ export default function Home() {
         currentQuestion.options.push(line);
         currentQuestion.type = 'Multiple Choice';
       } else if (/^Answer:/.test(line)) {
-        currentQuestion.answer = line.replace(/^Answer:\s*/, '');
+        currentQuestion.answer = line.replace(/^Answer:\s*/, '').trim();
         if (!currentQuestion.type) {
           currentQuestion.type = 'True/False';
           currentQuestion.options = ['True', 'False'];
         }
       } else if (/^Explanation:/.test(line)) {
-        currentQuestion.explanation = line.replace(/^Explanation:\s*/, '');
+        currentQuestion.explanation = line.replace(/^Explanation:\s*/, '').trim();
       } else if (line === '') {
         // Empty line, skip
       } else {
@@ -351,17 +328,49 @@ export default function Home() {
       questions.push(currentQuestion);
     }
 
+    // Post-processing to ensure consistency
+    questions.forEach((q) => {
+      if (q.type === 'Multiple Choice') {
+        const answerMatch = q.answer.match(/^[A-D]$/i);
+        if (answerMatch) {
+          q.answer = answerMatch[0].toUpperCase();
+        } else {
+          const optionIndex = q.options.findIndex((opt) => {
+            const optionText = opt.substring(3).trim().toLowerCase();
+            return (
+              opt.substring(0, 1).toUpperCase() === q.answer.toUpperCase() ||
+              optionText === q.answer.toLowerCase()
+            );
+          });
+          if (optionIndex !== -1) {
+            q.answer = ['A', 'B', 'C', 'D'][optionIndex];
+          } else {
+            console.warn(`Could not match answer "${q.answer}" to options in question ${q.questionNumber}.`);
+          }
+        }
+      }
+    });
+
     return questions;
   };
 
   // Handle option selection
   const handleOptionSelect = (questionIndex, option) => {
-    setQuizQuestions(prevQuestions => {
+    setQuizQuestions((prevQuestions) => {
       const updatedQuestions = prevQuestions.map((q, i) => {
         if (i === questionIndex && !q.isAnswered) {
-          const isCorrect = q.type === 'Multiple Choice'
-            ? option.startsWith(q.answer)
-            : option === q.answer;
+          let isCorrect = false;
+          if (q.type === 'Multiple Choice') {
+            const selectedOptionLetter = option.charAt(0).toUpperCase();
+            const selectedOptionText = option.substring(3).trim().toLowerCase();
+            if (q.answer.length === 1) {
+              isCorrect = selectedOptionLetter === q.answer.toUpperCase();
+            } else {
+              isCorrect = selectedOptionText === q.answer.toLowerCase();
+            }
+          } else if (q.type === 'True/False') {
+            isCorrect = option.toLowerCase() === q.answer.toLowerCase();
+          }
           return {
             ...q,
             selectedOption: option,
@@ -373,10 +382,9 @@ export default function Home() {
         return q;
       });
 
-      // Check if all questions have been answered
-      const allAnswered = updatedQuestions.every(q => q.isAnswered);
+      const allAnswered = updatedQuestions.every((q) => q.isAnswered);
       if (allAnswered) {
-        const correctAnswers = updatedQuestions.filter(q => q.isCorrect).length;
+        const correctAnswers = updatedQuestions.filter((q) => q.isCorrect).length;
         const totalQuestions = updatedQuestions.length;
         const score = Math.round((correctAnswers / totalQuestions) * 100);
         setQuizScore(score);
@@ -397,7 +405,7 @@ export default function Home() {
         showAnswer: false,
       }))
     );
-    setQuizScore(null); // Reset quiz score
+    setQuizScore(null);
   };
 
   // Handle cancellation of ongoing request
@@ -458,7 +466,7 @@ export default function Home() {
     }
 
     const quizTitle = prompt("Enter a title for this quiz:", `Quiz ${savedQuizzes.length + 1}`);
-    if (quizTitle === null) return; // User cancelled
+    if (quizTitle === null) return;
 
     const newQuiz = {
       id: Date.now(),
@@ -477,8 +485,7 @@ export default function Home() {
     if (quiz) {
       setQuizQuestions(quiz.questions);
       setSecondOutputComplete(true);
-      setQuizScore(null); // Reset quiz score when loading a saved quiz
-      // Close the sidebar
+      setQuizScore(null);
       setState(prev => ({ ...prev, showSidebar: false }));
     }
   };
@@ -558,8 +565,34 @@ export default function Home() {
                 Test your knowledge - Self-review by turning your study notes into quizzes
               </h2>
             </div>
+            <div className="flex justify-center items-center mb-8">
+  {/* Quiz Mode Dropdown - Hidden on mobile */}
+  <div className="flex items-center mr-4 hidden sm:flex">  {/* Hidden on screens smaller than 'sm' */}
+    <label htmlFor="quiz-mode-dropdown" className={`block text-lg font-medium ${state.darkMode ? 'text-white' : 'text-black'} mr-2`}>
+      Select Mode:
+    </label>
+    <select
+      id="quiz-mode-dropdown"
+      value={state.quizMode}
+      onChange={handleQuizModeChange}
+      className="p-2 rounded border border-gray-400 text-lg bg-white dark:bg-gray-800 dark:border-gray-600"
+      style={{ height: '40px' }}  // Adjusted height
+    >
+      <option value="general" title="Generate general knowledge quizzes based on any topic.">General</option>
+      <option value="math" disabled title="Coming Soon: Generate math-based quizzes!">Math (Coming Soon)</option>
+    </select>
+  </div>
+
+  {/* PDF Upload Form */}
+  <div className="ml-2">
+    <div style={{ transform: 'translateY(6px)' }}> {/* Adjusted translate */}
+      <PDFUploadForm onPDFParse={handlePDFText} />
+    </div>
+  </div>
+</div>
+
+
             <div className="mb-20">
-              <PDFUploadForm onPDFParse={handlePDFText} className="mt-10" />
               <form onSubmit={handleChatSubmit} className="space-y-4">
                 <textarea
                   className={`textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}
@@ -675,20 +708,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Embedded iframe */}
-              <div className="iframe-wrapper mt-10 flex justify-center items-center">
-                <iframe
-                  src="https://lu.ma/embed/event/evt-t6GaPVkTzzLTkpM/simple"
-                  width="600"
-                  height="450"
-                  frameBorder="0"
-                  style={{ border: '1px solid #bfcbda88', borderRadius: '4px' }}
-                  allowFullScreen
-                  aria-hidden="false"
-                  tabIndex="0"
-                ></iframe>
-              </div>
-
               <div className="quote-container mt-10">
                 <p className="quote-text">
                   "Learning is a treasure that will follow its owner everywhere.*"<br />
@@ -752,15 +771,22 @@ export default function Home() {
                 </div>
                 {question.isAnswered && (
                   <>
-                    <p className="mt-2">
-                      {question.isCorrect ? (
-                        <span className="text-green-600 font-bold">Correct!</span>
-                      ) : (
-                        <span className="text-red-600 font-bold">Incorrect!</span>
-                      )} The correct answer is: <strong>{question.answer}</strong>
-                    </p>
+                    {question.answer ? (
+                      <p className="mt-2">
+                        {question.isCorrect ? (
+                          <span className="text-green-600 font-bold">Correct!</span>
+                        ) : (
+                          <span className="text-red-600 font-bold">Incorrect!</span>
+                        )}{' '}
+                        The correct answer is: <strong>{question.type === 'Multiple Choice' ? question.answer + ')' : ''} {question.options.find(opt => opt.startsWith(question.answer + ')'))?.substring(3) || question.answer}</strong>
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-red-600 font-bold">The correct answer could not be determined.</p>
+                    )}
                     {question.explanation && (
-                      <p className="mt-2"><strong>Explanation:</strong> {question.explanation}</p>
+                      <p className="mt-2">
+                        <strong>Explanation:</strong> {question.explanation}
+                      </p>
                     )}
                   </>
                 )}
@@ -844,7 +870,7 @@ export default function Home() {
       <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-30 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
         &copy; {new Date().getFullYear()} David Castro. All rights reserved.
         <br />
-        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.16</a>
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.22</a>
         <br />
         <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
           <FontAwesomeIcon icon={faDiscord} /> Discord

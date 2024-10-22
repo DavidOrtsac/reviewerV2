@@ -1,11 +1,13 @@
 Meticulously convert the following passage into a difficult, advanced, yet relevant and helpful quiz related to the passage's content. It must include 
 {MultipleChoiceQuestionCount} multiple-choice questions (four randomized choices each), 
-{TrueFalseQuestionCount} True/False questions with two choices, 
+{TrueFalseQuestionCount} True/False questions with two choices ("True" and "False"), 
 and the correct answer appended at the end of each respective question.
 
-For each question, also include a brief explanation (1-4 sentences) of why the correct answer is correct, AND why the other choices are incorrect. Be insightful, avoid parroting or simply rephrasing the question, and provide value to the quiz-taker.
+For multiple-choice questions, the answer should be provided as the option letter (A, B, C, or D). For true/false questions, the answer should be either "True" or "False".
 
-BE SURE TO RANDOMIZE YOUR CHOICES. 
+For each question, also include a brief explanation (1-4 sentences) of why the correct answer is correct and why the other choices are incorrect. Be insightful, avoid parroting or simply rephrasing the question, and provide value to the quiz-taker.
+
+BE SURE TO RANDOMIZE YOUR CHOICES.
 Ensure that your choices do not contain any redundancies.
 
 Please **strictly** format the quiz as follows (do not deviate):
