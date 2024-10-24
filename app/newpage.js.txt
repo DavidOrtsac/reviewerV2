@@ -1,0 +1,342 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import PDFUploadForm from './components/PDFUploadForm';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faDiscord } from '@fortawesome/free-brands-svg-icons';
+import { faFilePdf, faLightbulb, faPlay, faCog, faHourglassHalf, faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
+import ReactGA from 'react-ga4';
+
+ReactGA.initialize('G-M9HSPDRDPR');
+
+export default function Home() {
+  const [state, setState] = useState({
+    isGenerating: false,
+    userPrompt: "",
+    isBlurred: false,
+    isInputExpanded: true,
+    buttonText: "Send",
+    textSetByUpload: false,
+    isButtonDisabled: false,
+    MultipleChoiceQuestionCount: 7,
+    TrueFalseQuestionCount: 3,
+    showOptions: false,
+    loaded: false,
+    darkMode: false,
+    useAdvancedPrompt: false,
+  });
+
+  const [quizQuestions, setQuizQuestions] = useState([]);
+
+  const abortController = useRef(null);
+
+  useEffect(() => {
+    setState(prev => ({ ...prev, loaded: true }));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPreference = localStorage.getItem("darkMode");
+      if (savedPreference) {
+        setState(prev => ({ ...prev, darkMode: JSON.parse(savedPreference) }));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('dark-mode', state.darkMode);
+      localStorage.setItem("darkMode", JSON.stringify(state.darkMode));
+    }
+  }, [state.darkMode]);
+
+  useEffect(() => {
+    if (state.textSetByUpload && state.userPrompt.trim() && !state.isGenerating) {
+      handleChatSubmit();
+      setState(prev => ({ ...prev, textSetByUpload: false }));
+    }
+  }, [state.userPrompt, state.textSetByUpload]);
+
+  const handlePDFText = (parsedText) => {
+    setState(prev => ({ ...prev, userPrompt: parsedText, textSetByUpload: true }));
+  };
+
+  const toggleOptionsVisibility = () => {
+    setState(prev => ({ ...prev, showOptions: !state.showOptions }));
+  };
+
+  const fetchPrompt = async (promptName) => {
+    const response = await fetch(`/api/prompts?promptName=${promptName}`);
+    return (await response.json()).content;
+  };
+
+  const handleChatSubmit = async (e) => {
+    e?.preventDefault();
+
+    const n_mcq = parseInt(state.MultipleChoiceQuestionCount, 10);
+    const n_tf = parseInt(state.TrueFalseQuestionCount, 10);
+
+    if (isNaN(n_mcq) || n_mcq <= 0 || isNaN(n_tf) || n_tf <= 0) {
+      alert("Question counts must be positive integers.");
+      return;
+    }
+
+    if (state.isGenerating || !state.userPrompt.trim()) return;
+
+    setState(prev => ({
+      ...prev,
+      isGenerating: true,
+      isBlurred: true,
+      isButtonDisabled: true,
+      buttonText: "Preparing Questions...",
+    }));
+    abortController.current = new AbortController();
+
+    try {
+      const selectedPromptName = state.useAdvancedPrompt ? 'AdvancedQuizPrompt' : 'GenerateQuizPrompt';
+      const generateQuizPromptTemplate = await fetchPrompt(selectedPromptName);
+
+      const generateQuizPrompt = generateQuizPromptTemplate
+        .replace('{MultipleChoiceQuestionCount}', n_mcq)
+        .replace('{TrueFalseQuestionCount}', n_tf)
+        .replace('{userPrompt}', state.userPrompt)
+        .concat(`
+Please generate a quiz based on the provided text. For multiple-choice questions, include options labeled A), B), C), and D). For true/false questions, simply state "True" or "False" as the answer. Please format the quiz as follows:
+
+Question {number}: {question text}
+{Optionally for MCQs:}
+A) {Option A}
+B) {Option B}
+C) {Option C}
+D) {Option D}
+Answer: {Answer}
+
+Ensure there is an empty line between questions.
+`);
+
+      const quizResponse = await fetch("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ prompt: generateQuizPrompt }),
+        headers: { "Content-Type": "application/json" },
+        signal: abortController.current.signal,
+      });
+
+      if (!quizResponse.ok) throw new Error(`HTTP error! status: ${quizResponse.status}`);
+
+      const quizText = await quizResponse.text();
+
+      const parsedQuizData = parseQuizData(quizText);
+      setQuizQuestions(parsedQuizData);
+
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        isBlurred: false,
+        isButtonDisabled: false,
+        buttonText: "Send",
+      }));
+
+    } catch (error) {
+      if (error.name !== 'AbortError') console.error("Error during fetch:", error);
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        isBlurred: false,
+        isButtonDisabled: false,
+        buttonText: "Send",
+      }));
+    }
+  };
+
+  const parseQuizData = (data) => {
+    const lines = data.split('\n');
+    const questions = [];
+    let currentQuestion = null;
+
+    for (let line of lines) {
+      line = line.trim();
+      if (/^Question \d+:/.test(line)) {
+        if (currentQuestion) {
+          currentQuestion.showAnswer = false;
+          questions.push(currentQuestion);
+        }
+        currentQuestion = {
+          question: line.replace(/^Question \d+:\s*/, ''),
+          options: [],
+          answer: '',
+          type: '',
+          showAnswer: false,
+        };
+      } else if (/^[A-D]\)/.test(line)) {
+        currentQuestion.options.push(line);
+        currentQuestion.type = 'Multiple Choice';
+      } else if (/^Answer:/.test(line)) {
+        currentQuestion.answer = line.replace(/^Answer:\s*/, '');
+        if (!currentQuestion.type) {
+          currentQuestion.type = 'True/False';
+        }
+      } else if (line === '') {
+        // Empty line, skip
+      } else {
+        if (currentQuestion && !currentQuestion.options.length) {
+          currentQuestion.question += ' ' + line;
+        }
+      }
+    }
+
+    if (currentQuestion) {
+      currentQuestion.showAnswer = false;
+      questions.push(currentQuestion);
+    }
+
+    return questions;
+  };
+
+  const handleCancel = () => {
+    if (abortController.current) {
+      abortController.current.abort();
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        isBlurred: false,
+        isButtonDisabled: false,
+        buttonText: "Send",
+      }));
+    }
+  };
+
+  const handleExampleText = async (e) => {
+    e.preventDefault();
+    const fileNames = ['AI', 'DigitalMarketing', 'HoneyBees', 'QuantumComputing', 'SolarSystem'];
+    const fileName = fileNames[Math.floor(Math.random() * fileNames.length)];
+
+    try {
+      const text = await fetchPrompt(fileName);
+      setState(prev => ({ ...prev, userPrompt: text }));
+    } catch (error) {
+      console.error("Error fetching example text:", error);
+    }
+  };
+
+  const toggleDarkMode = () => {
+    setState(prev => ({ ...prev, darkMode: !state.darkMode }));
+  };
+
+  const togglePromptType = () => {
+    setState(prev => ({ ...prev, useAdvancedPrompt: !state.useAdvancedPrompt }));
+  };
+
+  const toggleInputArea = () => {
+    setState(prev => ({ ...prev, isInputExpanded: !prev.isInputExpanded }));
+  };
+
+  return (
+    <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${state.darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
+      <div className="max-w-4xl w-full z-10 relative">
+        {/* Initial UI */}
+        {!state.isGenerating && quizQuestions.length === 0 && (
+          <div>
+            <div className="text-center mb-8">
+              <div style={{ fontFamily: 'Playfair Display, serif' }} className="font-sans text-4xl text-center mt-1 main-title">
+                The<span className="text-red-600">SelfReview</span>Engine
+              </div>
+              <h2 className={`responsive-header mb-10 ${state.darkMode ? 'text-white' : 'text-black'}`}>
+                Test your knowledge - Self-review by turning your study notes into quizzes
+              </h2>
+              
+              <button onClick={toggleDarkMode} className="absolute top-4 right-4 p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
+                <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
+              </button>
+            </div>
+            <div className="mb-20">
+              <PDFUploadForm onPDFParse={handlePDFText} className="mt-10" />
+              <form onSubmit={handleChatSubmit} className="space-y-4">
+                <textarea
+                  className={`textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}
+                  placeholder="Or manually paste your story/essay/report here..."
+                  value={state.userPrompt}
+                  onChange={e => setState(prev => ({ ...prev, userPrompt: e.target.value }))}
+                  rows="6"
+                  maxLength="40000"
+                />
+                <div className="flex justify-between items-center">
+                  <span className={`text-sm text-gray-600 counter ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{state.userPrompt.length}/40000</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExampleText}
+                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
+                      className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                      disabled={state.isGenerating}
+                    >
+                      <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Example
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleOptionsVisibility}
+                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
+                      className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
+                    >
+                      <FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {state.showOptions ? 'Options' : 'Options'}
+                    </button>
+                    <button
+                      type="submit"
+                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
+                      className={`px-6 py-2 rounded-md transition duration-200 ${state.isGenerating || !state.userPrompt.trim() ? 'bg-gray-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                      disabled={state.isGenerating || !state.userPrompt.trim()}
+                    >
+                      <FontAwesomeIcon icon={faPlay} style={{ marginRight: '4px' }} /> Generate
+                    </button>
+                  </div>
+                </div>
+                <p className={`text-sm text-center ${state.darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Files uploaded will not be stored</p>
+                {state.showOptions && (
+                  <div className="mt-4">
+                    {/* Options sliders and toggles */}
+                    {/* ... */}
+                  </div>
+                )}
+              </form>
+              {/* Additional UI elements */}
+            </div>
+          </div>
+        )}
+
+        {/* Quiz Display */}
+        {quizQuestions.length > 0 && (
+          <div className="quiz-container">
+            {quizQuestions.map((question, index) => (
+              <div key={index} className="question mb-4">
+                <p className="font-bold">{index + 1}. {question.question}</p>
+                {question.type === 'Multiple Choice' && (
+                  <ul className="ml-4 list-disc">
+                    {question.options.map((option, idx) => (
+                      <li key={idx}>{option}</li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  onClick={() => {
+                    setQuizQuestions(prevQuestions =>
+                      prevQuestions.map((q, i) =>
+                        i === index ? { ...q, showAnswer: !q.showAnswer } : q
+                      )
+                    );
+                  }}
+                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  {question.showAnswer ? 'Hide Answer' : 'Show Answer'}
+                </button>
+                {question.showAnswer && (
+                  <p className="mt-2"><strong>Answer:</strong> {question.answer}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Footer and other components */}
+      </div>
+    </main>
+  );
+}

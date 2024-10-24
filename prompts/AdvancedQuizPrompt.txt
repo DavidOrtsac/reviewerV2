@@ -1,0 +1,8 @@
+Meticulously transform the following passage into a challenging, advanced quiz designed to test deep understanding and critical thinking related to the passage's content. It must include 
+{MultipleChoiceQuestionCount} multiple-choice questions (four carefully randomized choices each), 
+{TrueFalseQuestionCount} True/False questions that require nuanced consideration, 
+and the correct answer subtly indicated at the end of each respective question. 
+ENSURE THAT THE QUESTIONS AND ANSWERS ARE NOT STRAIGHTFORWARD. 
+Choices should be crafted to avoid redundancies, encourage reflection, and require the application of concepts rather than mere recall:
+
+{userPrompt}

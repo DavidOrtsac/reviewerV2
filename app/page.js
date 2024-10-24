@@ -3,7 +3,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import PDFUploadForm from './components/PDFUploadForm';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import LoadingOverlay from './components/LoadingOverlay';
+import InitialUI from './components/InitialUI';
+import QuizDisplay from './components/QuizDisplay';
+import FixedInputArea from './components/FixedInputArea';
+import Footer from './components/Footer';
+import ReactGA from 'react-ga4';
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import {
@@ -19,11 +27,11 @@ import {
   faTimes,
   faRedo,
 } from '@fortawesome/free-solid-svg-icons';
-import ReactGA from 'react-ga4';
 
 ReactGA.initialize('G-M9HSPDRDPR');
 
 export default function Home() {
+  // State variables
   const [state, setState] = useState({
     isGenerating: false,
     userPrompt: "",
@@ -39,9 +47,8 @@ export default function Home() {
     darkMode: false,
     useAdvancedPrompt: false,
     showSidebar: false,
-    quizMode: 'general', // New state for quiz mode selection
+    quizMode: 'general',
   });
-
 
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [savedQuizzes, setSavedQuizzes] = useState([]);
@@ -103,6 +110,19 @@ export default function Home() {
     }
   }, [secondOutputComplete]);
 
+  // State setters to pass to components
+  const setUserPrompt = (userPrompt) => {
+    setState(prev => ({ ...prev, userPrompt }));
+  };
+
+  const setMultipleChoiceQuestionCount = (value) => {
+    setState(prev => ({ ...prev, MultipleChoiceQuestionCount: value }));
+  };
+
+  const setTrueFalseQuestionCount = (value) => {
+    setState(prev => ({ ...prev, TrueFalseQuestionCount: value }));
+  };
+
   // Handle PDF text parsing
   const handlePDFText = (parsedText) => {
     setState(prev => ({ ...prev, userPrompt: parsedText, textSetByUpload: true }));
@@ -151,7 +171,6 @@ export default function Home() {
     setState(prev => ({ ...prev, quizMode: event.target.value }));
   };
 
-  
   // Handle form submission to generate quiz
   const handleChatSubmit = async (e) => {
     e?.preventDefault();
@@ -500,363 +519,73 @@ export default function Home() {
   return (
     <main className={`min-h-screen p-4 flex justify-center items-center relative overflow-hidden ${state.darkMode ? 'bg-black text-white' : 'bg-white text-black'}`}>
       {/* Sidebar */}
-      {state.showSidebar && (
-        <div className={`fixed top-0 left-0 h-full w-64 bg-gray-100 shadow-lg z-50 overflow-auto ${state.darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-xl font-bold">Saved Quizzes</h2>
-            <button onClick={toggleSidebar} className="text-lg">
-              <FontAwesomeIcon icon={faTimes} />
-            </button>
-          </div>
-          {savedQuizzes.length === 0 ? (
-            <p className="p-4">No saved quizzes.</p>
-          ) : (
-            <ul>
-              {savedQuizzes.map(quiz => (
-                <li key={quiz.id} className="p-4 border-b flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold">{quiz.title}</h3>
-                    <p className="text-sm">{quiz.timestamp}</p>
-                  </div>
-                  <div className="flex items-center">
-                    <button onClick={() => loadSavedQuiz(quiz.id)} className="px-2 py-1 bg-blue-500 text-white rounded mr-2">
-                      Load
-                    </button>
-                    <button onClick={() => deleteSavedQuiz(quiz.id)} className="px-2 py-1 bg-red-500 text-white rounded">
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      <Sidebar
+        showSidebar={state.showSidebar}
+        toggleSidebar={toggleSidebar}
+        savedQuizzes={savedQuizzes}
+        loadSavedQuiz={loadSavedQuiz}
+        deleteSavedQuiz={deleteSavedQuiz}
+        darkMode={state.darkMode}
+      />
 
-      {/* Loading Screen */}
-      {state.isGenerating && (
-        <div className="loading-overlay fixed inset-0 flex flex-col justify-center items-center bg-white bg-opacity-75 z-40">
-          <div className="text-2xl mb-4">Generating Quiz...</div>
-          <div className="loading-animation text-xl mb-4">Please wait</div>
-          <div className="text-lg">Elapsed Time: {(loadingTime / 1000).toFixed(2)} seconds</div>
-          <div className="text-md">Processing chunk {chunkProgress.current} of {chunkProgress.total}</div>
-        </div>
-      )}
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        isGenerating={state.isGenerating}
+        loadingTime={loadingTime}
+        chunkProgress={chunkProgress}
+      />
 
       <div className="max-w-4xl w-full z-10 relative">
-        {/* Header with Sidebar Toggle and Dark Mode Toggle */}
-        <header className="flex justify-between items-center mb-4">
-          <button onClick={toggleSidebar} className="p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
-            <FontAwesomeIcon icon={faBars} />
-          </button>
-          <button onClick={toggleDarkMode} className="p-2 rounded-full bg-gray-200 text-black dark:bg-gray-800 dark:text-white">
-            <FontAwesomeIcon icon={state.darkMode ? faSun : faMoon} />
-          </button>
-        </header>
+        {/* Header */}
+        <Header
+          toggleSidebar={toggleSidebar}
+          toggleDarkMode={toggleDarkMode}
+          darkMode={state.darkMode}
+        />
 
         {/* Initial UI */}
         {!state.isGenerating && quizQuestions.length === 0 && (
-          <div>
-            <div className="text-center mb-8">
-              <div style={{ fontFamily: 'Playfair Display, serif' }} className="font-sans text-4xl text-center mt-1 main-title">
-                The<span className="text-red-600">SelfReview</span>Engine
-              </div>
-              <h2 className={`responsive-header mb-10 ${state.darkMode ? 'text-white' : 'text-black'}`}>
-                Test your knowledge - Self-review by turning your study notes into quizzes
-              </h2>
-            </div>
-            <div className="flex justify-center items-center mb-8">
-  {/* Quiz Mode Dropdown - Hidden on mobile */}
-  <div className="flex items-center mr-4 hidden sm:flex">  {/* Hidden on screens smaller than 'sm' */}
-    <label htmlFor="quiz-mode-dropdown" className={`block text-lg font-medium ${state.darkMode ? 'text-white' : 'text-black'} mr-2`}>
-      Select Mode:
-    </label>
-    <select
-      id="quiz-mode-dropdown"
-      value={state.quizMode}
-      onChange={handleQuizModeChange}
-      className="p-2 rounded border border-gray-400 text-lg bg-white dark:bg-gray-800 dark:border-gray-600"
-      style={{ height: '40px' }}  // Adjusted height
-    >
-      <option value="general" title="Generate general knowledge quizzes based on any topic.">General</option>
-      <option value="math" disabled title="Coming Soon: Generate math-based quizzes!">Math (Coming Soon)</option>
-    </select>
-  </div>
-
-  {/* PDF Upload Form */}
-  <div className="ml-2">
-    <div style={{ transform: 'translateY(6px)' }}> {/* Adjusted translate */}
-      <PDFUploadForm onPDFParse={handlePDFText} />
-    </div>
-  </div>
-</div>
-
-
-            <div className="mb-20">
-              <form onSubmit={handleChatSubmit} className="space-y-4">
-                <textarea
-                  className={`textarea w-full p-4 border-2 border-gray-300 rounded-lg resize-y overflow-auto flex-grow user-input ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}
-                  placeholder="Or manually paste your story/essay/report here..."
-                  value={state.userPrompt}
-                  onChange={e => setState(prev => ({ ...prev, userPrompt: e.target.value }))}
-                  rows="6"
-                  maxLength="40000"
-                />
-                <div className="flex justify-between items-center">
-                  <span className={`text-sm text-gray-600 counter ${state.darkMode ? 'text-white bg-black' : 'text-black bg-white'}`}>{state.userPrompt.length}/40000</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleExampleText}
-                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
-                      className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
-                      disabled={state.isGenerating}
-                    >
-                      <FontAwesomeIcon icon={faLightbulb} style={{ marginRight: '4px' }} /> Example
-                    </button>
-                    <button
-                      type="button"
-                      onClick={toggleOptionsVisibility}
-                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
-                      className="px-4 py-2 bg-gray-200 text-black rounded hover:bg-gray-300 transition duration-200"
-                    >
-                      <FontAwesomeIcon icon={faCog} style={{ marginRight: '4px' }} /> {state.showOptions ? 'Hide Options' : 'Show Options'}
-                    </button>
-                    <button
-                      type="submit"
-                      style={{ visibility: state.loaded ? 'visible' : 'hidden' }}
-                      className={`px-6 py-2 rounded-md transition duration-200 ${state.isGenerating || !state.userPrompt.trim() ? 'bg-gray-400 text-white' : 'bg-red-600 text-white hover:bg-red-700'}`}
-                      disabled={state.isGenerating || !state.userPrompt.trim()}
-                    >
-                      <FontAwesomeIcon icon={faPlay} style={{ marginRight: '4px' }} /> Generate
-                    </button>
-                  </div>
-                </div>
-                <p className={`text-sm text-center ${state.darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Files uploaded will not be stored</p>
-                {state.showOptions && (
-                  <div className="mt-4">
-                    <div className="text-center">
-                      <label htmlFor="multiple-choice-slider" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
-                        Number of Multiple Choice Questions
-                      </label>
-                      <input
-                        id="multiple-choice-slider"
-                        type="range"
-                        min="3"
-                        max="10"
-                        value={state.MultipleChoiceQuestionCount}
-                        onChange={e => setState(prev => ({ ...prev, MultipleChoiceQuestionCount: e.target.value }))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                      />
-                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white' : 'text-black'}`}>{state.MultipleChoiceQuestionCount}</div>
-                    </div>
-                    <div className="text-center mt-4">
-                      <label htmlFor="true-false-slider" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
-                        Number of True/False Questions
-                      </label>
-                      <input
-                        id="true-false-slider"
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={state.TrueFalseQuestionCount}
-                        onChange={e => setState(prev => ({ ...prev, TrueFalseQuestionCount: e.target.value }))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                      />
-                      <div className={`text-sm text-gray-600 mt-2 ${state.darkMode ? 'text-white' : 'text-black'}`}>{state.TrueFalseQuestionCount}</div>
-                    </div>
-                    <div className="text-center mt-4">
-                      <label htmlFor="prompt-type-switch" className={`block text-sm font-medium ${state.darkMode ? 'text-white' : 'text-black'}`}>
-                        Quiz Prompt Type
-                      </label>
-                      <div className="flex justify-center items-center mt-2">
-                        <span className="mr-4 text-sm">Basic</span>
-                        <div className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            id="prompt-type-switch"
-                            className="toggle-switch-checkbox"
-                            checked={state.useAdvancedPrompt}
-                            onChange={togglePromptType}
-                          />
-                          <label className="toggle-switch-label" htmlFor="prompt-type-switch">
-                            <span className="toggle-switch-inner"></span>
-                            <span className="toggle-switch-switch"></span>
-                          </label>
-                        </div>
-                        <span className="ml-4 text-sm">Advanced</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </form>
-              <div className="flex justify-center mt-4">
-                <button
-                  type="button"
-                  className="px-6 py-2 bg-gray-400 text-white rounded-md transition duration-200"
-                  disabled
-                >
-                  <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> YouTube URL to Quiz (Coming Soon)
-                </button>
-
-                <button
-                  type="button"
-                  className="px-6 py-2 bg-gray-400 ml-4 text-white rounded-md transition duration-200"
-                  disabled
-                >
-                  <FontAwesomeIcon icon={faHourglassHalf} style={{ marginRight: '4px' }} /> Flashcards (Coming Soon)
-                </button>
-              </div>
-
-              <div className="quote-container mt-10">
-                <p className="quote-text">
-                  "Learning is a treasure that will follow its owner everywhere.*"<br />
-                  <span className="quote-author">— Chinese Proverb</span>
-                </p>
-                <p className="quote-note">
-                  <em>*Except into an exam</em>
-                </p>
-              </div>
-            </div>
-          </div>
+          <InitialUI
+            state={{
+              ...state,
+              setUserPrompt,
+              setMultipleChoiceQuestionCount,
+              setTrueFalseQuestionCount,
+            }}
+            handlePDFText={handlePDFText}
+            handleChatSubmit={handleChatSubmit}
+            handleExampleText={handleExampleText}
+            toggleOptionsVisibility={toggleOptionsVisibility}
+            togglePromptType={togglePromptType}
+            handleQuizModeChange={handleQuizModeChange}
+            darkMode={state.darkMode}
+          />
         )}
 
         {/* Quiz Display */}
         {quizQuestions.length > 0 && (
-          <div className="quiz-container mb-20">
-            <div className="flex justify-end mb-4">
-              <button onClick={saveCurrentQuiz} className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-200 mr-2">
-                <FontAwesomeIcon icon={faSave} style={{ marginRight: '4px' }} /> Save Quiz
-              </button>
-              <button onClick={resetQuiz} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition duration-200">
-                <FontAwesomeIcon icon={faRedo} style={{ marginRight: '4px' }} /> Reset Quiz
-              </button>
-            </div>
-            {quizQuestions.map((question, index) => (
-              <div key={index} className="question mb-6 p-4 border rounded-lg shadow-md">
-                <p className="font-bold mb-2">{question.questionNumber}. {question.question}</p>
-                <div className="options-container">
-                  {question.options.map((option, idx) => {
-                    const isSelected = question.selectedOption === option;
-                    const isCorrectOption = question.type === 'Multiple Choice'
-                      ? option.startsWith(question.answer)
-                      : option === question.answer;
-                    let optionStyle = 'px-4 py-2 mb-2 text-left w-full rounded';
-
-                    if (question.isAnswered) {
-                      if (isSelected && question.isCorrect) {
-                        optionStyle += ' bg-green-500 text-white';
-                      } else if (isSelected && !question.isCorrect) {
-                        optionStyle += ' bg-red-500 text-white';
-                      } else if (isCorrectOption) {
-                        optionStyle += ' bg-green-200 text-black';
-                      } else {
-                        optionStyle += ' bg-gray-200 text-black';
-                      }
-                    } else {
-                      optionStyle += ' bg-gray-100 hover:bg-gray-200';
-                    }
-
-                    return (
-                      <button
-                        key={idx}
-                        className={optionStyle}
-                        onClick={() => handleOptionSelect(index, option)}
-                        disabled={question.isAnswered}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-                {question.isAnswered && (
-                  <>
-                    {question.answer ? (
-                      <p className="mt-2">
-                        {question.isCorrect ? (
-                          <span className="text-green-600 font-bold">Correct!</span>
-                        ) : (
-                          <span className="text-red-600 font-bold">Incorrect!</span>
-                        )}{' '}
-                        The correct answer is: <strong>{question.type === 'Multiple Choice' ? question.answer + ')' : ''} {question.options.find(opt => opt.startsWith(question.answer + ')'))?.substring(3) || question.answer}</strong>
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-red-600 font-bold">The correct answer could not be determined.</p>
-                    )}
-                    {question.explanation && (
-                      <p className="mt-2">
-                        <strong>Explanation:</strong> {question.explanation}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-
-            {/* Display Quiz Score */}
-            {quizScore !== null && (
-              <div className="text-center mt-8 mb-4">
-                <h2 className="text-2xl font-bold">Quiz Completed!</h2>
-                <p className="text-lg mt-2">Your Score: {quizScore}%</p>
-              </div>
-            )}
-
-            {/* Typeform Feedback Button */}
-            {secondOutputComplete && (
-              <>
-                <div className="text-center mt-8 mb-4">
-                  <hr />
-                  <br />
-                  <h2 className="text-2xl font-bold">Got a minute? You don't want to miss the chance to get smarter!</h2>
-                  <p className="text-md mt-1">Get notified of weekly Reviewer app updates</p>
-                </div>
-                <div className="flex justify-center">
-                  <div data-tf-live="01HHWJ49QMHTPZW7Z45W6CKXER"></div>
-                </div>
-              </>
-            )}
-          </div>
+          <QuizDisplay
+            quizQuestions={quizQuestions}
+            saveCurrentQuiz={saveCurrentQuiz}
+            resetQuiz={resetQuiz}
+            handleOptionSelect={handleOptionSelect}
+            quizScore={quizScore}
+            secondOutputComplete={secondOutputComplete}
+          />
         )}
 
         {/* Fixed Bottom Input Area */}
-        {(state.isGenerating || quizQuestions.length > 0) && (
-          <div>
-            <div className={`fixed bottom-4 left-4 right-4 bg-white shadow-lg rounded-lg p-4 flex justify-between items-center ${state.darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-              {state.isInputExpanded && (
-                <>
-                  <input
-                    type="text"
-                    className={`w-full p-4 text-lg border-2 border-gray-300 rounded-lg mr-4 ${state.darkMode ? 'text-white bg-gray-700' : 'text-black bg-white'}`}
-                    placeholder="Type your message..."
-                    value={state.userPrompt}
-                    onChange={e => setState(prev => ({ ...prev, userPrompt: e.target.value }))}
-                    disabled={state.isGenerating}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleChatSubmit}
-                    className={`ml-4 px-6 py-2 rounded-md transition duration-200 ${state.isButtonDisabled ? 'bg-gray-400 text-white' : 'bg-black text-white hover:bg-gray-700'}`}
-                    disabled={state.isButtonDisabled || !state.userPrompt.trim()}
-                  >
-                    {state.buttonText}
-                  </button>
-                  {state.isGenerating && (
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="ml-4 px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </>
-              )}
-              <div className="input-toggle-button cursor-pointer" onClick={toggleInputArea}>
-                {state.isInputExpanded ? '▲' : '▼'}
-              </div>
-            </div>
-          </div>
-        )}
+        <FixedInputArea
+          state={{
+            ...state,
+            setUserPrompt,
+            quizQuestions,
+          }}
+          toggleInputArea={toggleInputArea}
+          handleChatSubmit={handleChatSubmit}
+          handleCancel={handleCancel}
+          darkMode={state.darkMode}
+        />
 
         {/* First Output Complete Message */}
         {quizQuestions.length > 0 && (
@@ -867,15 +596,11 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-30 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
-        &copy; {new Date().getFullYear()} David Castro. All rights reserved.
-        <br />
-        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.25</a>
-        <br />
-        <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
-          <FontAwesomeIcon icon={faDiscord} /> Discord
-        </a>
-      </footer>
+      <Footer
+        isGenerating={state.isGenerating}
+        darkMode={state.darkMode}
+        loaded={state.loaded}
+      />
     </main>
   );
 }
