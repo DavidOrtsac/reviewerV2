@@ -870,7 +870,7 @@ export default function Home() {
       <footer className={`${state.isGenerating ? 'hidden' : ''} fixed bottom-0 left-0 right-0 z-30 ${state.darkMode ? 'bg-black text-white' : 'bg-white text-gray-500'} text-center text-sm p-4`}>
         &copy; {new Date().getFullYear()} David Castro. All rights reserved.
         <br />
-        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.22</a>
+        <a href="https://calver.org" target="_blank" rel="noopener noreferrer">Release 2024.10.25</a>
         <br />
         <a href="https://discord.gg/5rDWAzWunK" target="_blank" rel="noopener noreferrer" className="discord-button" style={{ visibility: state.loaded ? 'visible' : 'hidden' }}>
           <FontAwesomeIcon icon={faDiscord} /> Discord
